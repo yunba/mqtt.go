@@ -81,10 +81,10 @@ func Test_obound_mid2key(t *testing.T) {
  **** persist_obound ****
  ************************/
 
-func Test_persist_obound_connect(t *testing.T) {
+func testPersistOboundConnect(t *testing.T, version byte){
 	ts := &TestStore{}
-	m := newConnectMsg(false, false, QOS_ZERO, false, "", nil, "cid", "user", "pass", 10)
-	persist_obound(ts, m)
+	m := newConnectMsg(false, false, QOS_ZERO, false, "", nil, "cid", "user", "pass", 10, version)
+	persist_obound(ts, m, version)
 
 	if len(ts.mput) != 0 {
 		t.Fatalf("persist_obound put message it should not have")
@@ -99,11 +99,19 @@ func Test_persist_obound_connect(t *testing.T) {
 	}
 }
 
-func Test_persist_obound_publish_0(t *testing.T) {
+func Test_persist_obound_connect_v3(t *testing.T) {
+	testPersistOboundConnect(t, 0x03)
+}
+
+func Test_persist_obound_connect_v19(t *testing.T) {
+	testPersistOboundConnect(t, 0x13)
+}
+
+func testPersistOboundPublish_0(t *testing.T, version byte) {
 	ts := &TestStore{}
-	m := newPublishMsg(QOS_ZERO, "/popub0", []byte{0xBB, 0x00})
+	m := newPublishMsg(QOS_ZERO, "/popub0", []byte{0xBB, 0x00}, version)
 	m.setMsgId(40)
-	persist_obound(ts, m)
+	persist_obound(ts, m, version)
 
 	if len(ts.mput) != 0 {
 		t.Fatalf("persist_obound put message it should not have")
@@ -118,11 +126,19 @@ func Test_persist_obound_publish_0(t *testing.T) {
 	}
 }
 
-func Test_persist_obound_publish_1(t *testing.T) {
+func Test_persist_obound_publish_0_v3(t *testing.T) {
+	testPersistOboundPublish_0(t, 0x03)
+}
+
+func Test_persist_obound_publish_0_v19(t *testing.T) {
+	testPersistOboundPublish_0(t, 0x13)
+}
+
+func testPersistOboundPublish_1(t *testing.T, version byte) {
 	ts := &TestStore{}
-	m := newPublishMsg(QOS_ONE, "/popub1", []byte{0xBB, 0x01})
+	m := newPublishMsg(QOS_ONE, "/popub1", []byte{0xBB, 0x01}, version)
 	m.setMsgId(41)
-	persist_obound(ts, m)
+	persist_obound(ts, m, version)
 
 	if len(ts.mput) != 1 || ts.mput[0] != 41 {
 		t.Fatalf("persist_obound put message it should not have")
@@ -137,11 +153,19 @@ func Test_persist_obound_publish_1(t *testing.T) {
 	}
 }
 
-func Test_persist_obound_publish_2(t *testing.T) {
+func Test_persist_obound_publish_1_v3(t *testing.T) {
+	testPersistOboundPublish_1(t, 0x03)
+}
+
+func Test_persist_obound_publish_1_v19(t *testing.T) {
+	testPersistOboundPublish_1(t, 0x13)
+}
+
+func testPersistOboundPublish_2(t *testing.T, version byte) {
 	ts := &TestStore{}
-	m := newPublishMsg(QOS_TWO, "/popub2", []byte{0xBB, 0x02})
+	m := newPublishMsg(QOS_TWO, "/popub2", []byte{0xBB, 0x02}, version)
 	m.setMsgId(42)
-	persist_obound(ts, m)
+	persist_obound(ts, m, version)
 
 	if len(ts.mput) != 1 || ts.mput[0] != 42 {
 		t.Fatalf("persist_obound put message it should not have")
@@ -156,10 +180,18 @@ func Test_persist_obound_publish_2(t *testing.T) {
 	}
 }
 
-func Test_persist_obound_puback(t *testing.T) {
+func Test_persist_obound_publish_2_v3(t *testing.T) {
+	testPersistOboundPublish_2(t, 0x03)
+}
+
+func Test_persist_obound_publish_2_v19(t *testing.T) {
+	testPersistOboundPublish_2(t, 0x13)
+}
+
+func testPersistOboundPuback(t *testing.T, version byte) {
 	ts := &TestStore{}
 	m := newMsg(PUBACK, false, QOS_ZERO, false)
-	persist_obound(ts, m)
+	persist_obound(ts, m, version)
 
 	if len(ts.mput) != 0 {
 		t.Fatalf("persist_obound put message it should not have")
@@ -174,10 +206,18 @@ func Test_persist_obound_puback(t *testing.T) {
 	}
 }
 
-func Test_persist_obound_pubrec(t *testing.T) {
+func Test_persist_obound_puback_v3(t *testing.T) {
+	testPersistOboundPuback(t, 0x03)
+}
+
+func Test_persist_obound_puback_v19(t *testing.T) {
+	testPersistOboundPuback(t, 0x13)
+}
+
+func testPersistOboundPubrec(t *testing.T, version byte){
 	ts := &TestStore{}
 	m := newMsg(PUBREC, false, QOS_ZERO, false)
-	persist_obound(ts, m)
+	persist_obound(ts, m, version)
 
 	if len(ts.mput) != 0 {
 		t.Fatalf("persist_obound put message it should not have")
@@ -192,12 +232,20 @@ func Test_persist_obound_pubrec(t *testing.T) {
 	}
 }
 
-func Test_persist_obound_pubrel(t *testing.T) {
+func Test_persist_obound_pubrec_v3(t *testing.T) {
+	testPersistOboundPubrec(t, 0x03)
+}
+
+func Test_persist_obound_pubrec_v19(t *testing.T) {
+	testPersistOboundPubrec(t, 0x13)
+}
+
+func testPersistOboundPubrel(t *testing.T, version byte) {
 	ts := &TestStore{}
-	m := newPubRelMsg()
+	m := newPubRelMsg(0x13)
 	m.setMsgId(43)
 
-	persist_obound(ts, m)
+	persist_obound(ts, m, version)
 
 	if len(ts.mput) != 1 || ts.mput[0] != 43 {
 		t.Fatalf("persist_obound put message it should not have")
@@ -212,10 +260,18 @@ func Test_persist_obound_pubrel(t *testing.T) {
 	}
 }
 
-func Test_persist_obound_pubcomp(t *testing.T) {
+func Test_persist_obound_pubrel_v3(t *testing.T) {
+	testPersistOboundPubrel(t, 0x03)
+}
+
+func Test_persist_obound_pubrel_v19(t *testing.T) {
+	testPersistOboundPubrel(t, 0x13)
+}
+
+func testPersistOboundPubcomp(t *testing.T, version byte){
 	ts := &TestStore{}
 	m := newMsg(PUBCOMP, false, QOS_ZERO, false)
-	persist_obound(ts, m)
+	persist_obound(ts, m, version)
 
 	if len(ts.mput) != 0 {
 		t.Fatalf("persist_obound put message it should not have")
@@ -230,12 +286,20 @@ func Test_persist_obound_pubcomp(t *testing.T) {
 	}
 }
 
-func Test_persist_obound_subscribe(t *testing.T) {
+func Test_persist_obound_pubcomp_v3(t *testing.T) {
+	testPersistOboundPubcomp(t, 0x03)
+}
+
+func Test_persist_obound_pubcomp_v19(t *testing.T) {
+	testPersistOboundPubcomp(t, 0x13)
+}
+
+func testPersistOboundSubscribe(t *testing.T, version byte){
 	ts := &TestStore{}
 	filter, _ := NewTopicFilter("/posub", 1)
-	m := newSubscribeMsg(filter)
+	m := newSubscribeMsg(version, filter)
 	m.setMsgId(44)
-	persist_obound(ts, m)
+	persist_obound(ts, m, version)
 
 	if len(ts.mput) != 1 || ts.mput[0] != 44 {
 		t.Fatalf("persist_obound put message it should not have")
@@ -250,11 +314,19 @@ func Test_persist_obound_subscribe(t *testing.T) {
 	}
 }
 
-func Test_persist_obound_unsubscribe(t *testing.T) {
+func Test_persist_obound_subscribe_v3(t *testing.T) {
+	testPersistOboundSubscribe(t, 0x03)
+}
+
+func Test_persist_obound_subscribe_v19(t *testing.T) {
+	testPersistOboundSubscribe(t, 0x13)
+}
+
+func testPersistOboundUnsubscribe(t *testing.T, version byte){
 	ts := &TestStore{}
-	m := newUnsubscribeMsg("/posub")
+	m := newUnsubscribeMsg(version, "/posub")
 	m.setMsgId(45)
-	persist_obound(ts, m)
+	persist_obound(ts, m, version)
 
 	if len(ts.mput) != 1 || ts.mput[0] != 45 {
 		t.Fatalf("persist_obound put message it should not have")
@@ -269,10 +341,18 @@ func Test_persist_obound_unsubscribe(t *testing.T) {
 	}
 }
 
-func Test_persist_obound_pingreq(t *testing.T) {
+func Test_persist_obound_unsubscribe_v3(t *testing.T) {
+	testPersistOboundUnsubscribe(t, 0x03)
+}
+
+func Test_persist_obound_unsubscribe_v19(t *testing.T) {
+	testPersistOboundUnsubscribe(t, 0x13)
+}
+
+func testPersistOboundPingreq(t *testing.T, version byte){
 	ts := &TestStore{}
 	m := newPingReqMsg()
-	persist_obound(ts, m)
+	persist_obound(ts, m, version)
 
 	if len(ts.mput) != 0 {
 		t.Fatalf("persist_obound put message it should not have")
@@ -287,10 +367,18 @@ func Test_persist_obound_pingreq(t *testing.T) {
 	}
 }
 
-func Test_persist_obound_disconnect(t *testing.T) {
+func Test_persist_obound_pingreq_v3(t *testing.T) {
+	testPersistOboundPingreq(t, 0x03)
+}
+
+func Test_persist_obound_pingreq_v19(t *testing.T) {
+	testPersistOboundPingreq(t, 0x13)
+}
+
+func testPersistOboundDisconnect(t *testing.T, version byte){
 	ts := &TestStore{}
 	m := newDisconnectMsg()
-	persist_obound(ts, m)
+	persist_obound(ts, m, version)
 
 	if len(ts.mput) != 0 {
 		t.Fatalf("persist_obound put message it should not have")
@@ -303,6 +391,14 @@ func Test_persist_obound_disconnect(t *testing.T) {
 	if len(ts.mdel) != 0 {
 		t.Fatalf("persist_obound del message it should not have")
 	}
+}
+
+func Test_persist_obound_disconnect_v3(t *testing.T) {
+	testPersistOboundDisconnect(t, 0x03)
+}
+
+func Test_persist_obound_disconnect_v19(t *testing.T) {
+	testPersistOboundDisconnect(t, 0x13)
 }
 
 /************************
@@ -312,7 +408,7 @@ func Test_persist_obound_disconnect(t *testing.T) {
 func Test_persist_ibound_connack(t *testing.T) {
 	ts := &TestStore{}
 	m := newMsg(CONNACK, false, QOS_ZERO, false)
-	persist_ibound(ts, m)
+	persist_ibound(ts, m, 0x13)
 
 	if len(ts.mput) != 0 {
 		t.Fatalf("persist_ibound in bad state")
@@ -329,9 +425,9 @@ func Test_persist_ibound_connack(t *testing.T) {
 
 func Test_persist_ibound_publish_0(t *testing.T) {
 	ts := &TestStore{}
-	m := newPublishMsg(QOS_ZERO, "/pipub0", []byte{0xCC, 0x01})
+	m := newPublishMsg(QOS_ZERO, "/pipub0", []byte{0xCC, 0x01}, 0x13)
 	m.setMsgId(50)
-	persist_ibound(ts, m)
+	persist_ibound(ts, m, 0x13)
 
 	if len(ts.mput) != 0 {
 		t.Fatalf("persist_ibound in bad state")
@@ -348,9 +444,9 @@ func Test_persist_ibound_publish_0(t *testing.T) {
 
 func Test_persist_ibound_publish_1(t *testing.T) {
 	ts := &TestStore{}
-	m := newPublishMsg(QOS_ONE, "/pipub1", []byte{0xCC, 0x02})
+	m := newPublishMsg(QOS_ONE, "/pipub1", []byte{0xCC, 0x02}, 0x13)
 	m.setMsgId(51)
-	persist_ibound(ts, m)
+	persist_ibound(ts, m, 0x13)
 
 	if len(ts.mput) != 1 || ts.mput[0] != 51 {
 		t.Fatalf("persist_ibound in bad state")
@@ -367,9 +463,9 @@ func Test_persist_ibound_publish_1(t *testing.T) {
 
 func Test_persist_ibound_publish_2(t *testing.T) {
 	ts := &TestStore{}
-	m := newPublishMsg(QOS_TWO, "/pipub2", []byte{0xCC, 0x03})
+	m := newPublishMsg(QOS_TWO, "/pipub2", []byte{0xCC, 0x03}, 0x13)
 	m.setMsgId(52)
-	persist_ibound(ts, m)
+	persist_ibound(ts, m, 0x13)
 
 	if len(ts.mput) != 1 || ts.mput[0] != 52 {
 		t.Fatalf("persist_ibound in bad state")
@@ -386,15 +482,15 @@ func Test_persist_ibound_publish_2(t *testing.T) {
 
 func Test_persist_ibound_puback(t *testing.T) {
 	ts := &TestStore{}
-	pub := newPublishMsg(QOS_ONE, "/pub1", []byte{0xCC, 0x04})
+	pub := newPublishMsg(QOS_ONE, "/pub1", []byte{0xCC, 0x04}, 0x13)
 	pub.setMsgId(53)
 	publish_key := ibound_mid2key(pub.MsgId())
-	ts.Put(publish_key, pub)
+	ts.Put(publish_key, pub, 0x13)
 
-	m := newPubAckMsg()
+	m := newPubAckMsg(0x13)
 	m.setMsgId(53)
 
-	persist_ibound(ts, m) // "deletes" PUBLISH from store
+	persist_ibound(ts, m, 0x13) // "deletes" PUBLISH from store
 
 	if len(ts.mput) != 1 { // not actually deleted in TestStore
 		t.Fatalf("persist_ibound in bad state")
@@ -411,15 +507,15 @@ func Test_persist_ibound_puback(t *testing.T) {
 
 func Test_persist_ibound_pubrec(t *testing.T) {
 	ts := &TestStore{}
-	pub := newPublishMsg(QOS_TWO, "/pub2", []byte{0xCC, 0x05})
+	pub := newPublishMsg(QOS_TWO, "/pub2", []byte{0xCC, 0x05}, 0x13)
 	pub.setMsgId(54)
 	publish_key := ibound_mid2key(pub.MsgId())
-	ts.Put(publish_key, pub)
+	ts.Put(publish_key, pub, 0x13)
 
-	m := newPubRecMsg()
+	m := newPubRecMsg(0x13)
 	m.setMsgId(54)
 
-	persist_ibound(ts, m)
+	persist_ibound(ts, m, 0x13)
 
 	if len(ts.mput) != 1 || ts.mput[0] != 54 {
 		t.Fatalf("persist_ibound in bad state")
@@ -436,15 +532,15 @@ func Test_persist_ibound_pubrec(t *testing.T) {
 
 func Test_persist_ibound_pubrel(t *testing.T) {
 	ts := &TestStore{}
-	pub := newPublishMsg(QOS_TWO, "/pub2", []byte{0xCC, 0x06})
+	pub := newPublishMsg(QOS_TWO, "/pub2", []byte{0xCC, 0x06}, 0x13)
 	pub.setMsgId(55)
 	publish_key := ibound_mid2key(pub.MsgId())
-	ts.Put(publish_key, pub)
+	ts.Put(publish_key, pub, 0x13)
 
-	m := newPubRelMsg()
+	m := newPubRelMsg(0x13)
 	m.setMsgId(55)
 
-	persist_ibound(ts, m) // will overwrite publish
+	persist_ibound(ts, m, 0x13) // will overwrite publish
 
 	if len(ts.mput) != 2 {
 		t.Fatalf("persist_ibound in bad state")
@@ -462,10 +558,10 @@ func Test_persist_ibound_pubrel(t *testing.T) {
 func Test_persist_ibound_pubcomp(t *testing.T) {
 	ts := &TestStore{}
 
-	m := newPubCompMsg()
+	m := newPubCompMsg(0x13)
 	m.setMsgId(56)
 
-	persist_ibound(ts, m)
+	persist_ibound(ts, m, 0x13)
 
 	if len(ts.mput) != 0 {
 		t.Fatalf("persist_ibound in bad state")
@@ -483,10 +579,10 @@ func Test_persist_ibound_pubcomp(t *testing.T) {
 func Test_persist_ibound_suback(t *testing.T) {
 	ts := &TestStore{}
 
-	m := newSubackMsg()
+	m := newSubackMsg(0x13)
 	m.setMsgId(57)
 
-	persist_ibound(ts, m)
+	persist_ibound(ts, m, 0x13)
 
 	if len(ts.mput) != 0 {
 		t.Fatalf("persist_ibound in bad state")
@@ -504,10 +600,10 @@ func Test_persist_ibound_suback(t *testing.T) {
 func Test_persist_ibound_unsuback(t *testing.T) {
 	ts := &TestStore{}
 
-	m := newUnsubackMsg()
+	m := newUnsubackMsg(0x13)
 	m.setMsgId(58)
 
-	persist_ibound(ts, m)
+	persist_ibound(ts, m, 0x13)
 
 	if len(ts.mput) != 0 {
 		t.Fatalf("persist_ibound in bad state")
@@ -526,7 +622,7 @@ func Test_persist_ibound_pingresp(t *testing.T) {
 	ts := &TestStore{}
 	m := newMsg(PINGRESP, false, QOS_ZERO, false)
 
-	persist_ibound(ts, m)
+	persist_ibound(ts, m, 0x13)
 
 	if len(ts.mput) != 0 {
 		t.Fatalf("persist_ibound in bad state")

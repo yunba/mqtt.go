@@ -221,9 +221,9 @@ func (c *MqttClient) Publish(qos QoS, topic string, payload interface{}) <-chan 
 	var pub *Message
 	switch payload.(type) {
 	case string:
-		pub = newPublishMsg(qos, topic, []byte(payload.(string)))
+		pub = newPublishMsg(qos, topic, []byte(payload.(string)), c.options.protocolVersion)
 	case []byte:
-		pub = newPublishMsg(qos, topic, payload.([]byte))
+		pub = newPublishMsg(qos, topic, payload.([]byte), c.options.protocolVersion)
 	default:
 		return nil
 	}
@@ -245,7 +245,7 @@ func (c *MqttClient) Publish(qos QoS, topic string, payload interface{}) <-chan 
 func (c *MqttClient) PublishMessage(topic string, message *Message) <-chan Receipt {
 	// Just reuse pieces from the existing message
 	// so that message id etc aren't set
-	pub := newPublishMsg(message.QoS(), topic, message.payload)
+	pub := newPublishMsg(message.QoS(), topic, message.payload, c.options.protocolVersion)
 	pub.SetRetainedFlag(message.RetainedFlag())
 
 	r := make(chan Receipt, 1)
@@ -268,7 +268,7 @@ func (c *MqttClient) StartSubscription(callback MessageHandler, filters ...*Topi
 		return nil, ErrNotConnected
 	}
 	DEBUG.Println(CLI, "enter StartSubscription")
-	submsg := newSubscribeMsg(filters...)
+	submsg := newSubscribeMsg(c.options.protocolVersion,  filters...)
 	chkcond(submsg != nil)
 
 	if callback != nil {
@@ -293,7 +293,7 @@ func (c *MqttClient) EndSubscription(topics ...string) (<-chan Receipt, error) {
 		return nil, ErrNotConnected
 	}
 	DEBUG.Println(CLI, "enter EndSubscription")
-	usmsg := newUnsubscribeMsg(topics...)
+	usmsg := newUnsubscribeMsg(c.options.protocolVersion,  topics...)
 
 	r := make(chan Receipt, 1)
 

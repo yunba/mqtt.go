@@ -48,11 +48,11 @@ func (ts *TestStore) Open() {
 func (ts *TestStore) Close() {
 }
 
-func (ts *TestStore) Put(key string, m *Message) {
+func (ts *TestStore) Put(key string, m *Message, protocolVersion byte) {
 	ts.mput = append(ts.mput, m.MsgId())
 }
 
-func (ts *TestStore) Get(key string) *Message {
+func (ts *TestStore) Get(key string, protocolVersion byte) *Message {
 	mid := key2mid(key)
 	ts.mget = append(ts.mget, mid)
 	return nil
@@ -132,11 +132,11 @@ func Test_FileStore_write(t *testing.T) {
 	f := NewFileStore(storedir)
 	f.Open()
 
-	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED})
+	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED}, 0x13)
 	pm.setMsgId(91)
 
 	key := ibound_mid2key(pm.MsgId())
-	f.Put(key, pm)
+	f.Put(key, pm, 0x13)
 
 	if !exists(storedir + "/i.91.msg") {
 		t.Fatalf("message not in store")
@@ -148,11 +148,11 @@ func Test_FileStore_Get(t *testing.T) {
 	storedir := "/tmp/TestStore/_get"
 	f := NewFileStore(storedir)
 	f.Open()
-	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED})
+	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED}, 0x13)
 	pm.setMsgId(120)
 
 	key := obound_mid2key(pm.MsgId())
-	f.Put(key, pm)
+	f.Put(key, pm, 0x13)
 
 	if !exists(storedir + "/o.120.msg") {
 		t.Fatalf("message not in store")
@@ -163,7 +163,7 @@ func Test_FileStore_Get(t *testing.T) {
 		0x32, // qos 1
 
 		/* remlen */
-		0x0d,
+		0x13,
 
 		/* topic, msg id in varheader */
 		0x00, // length of topic
@@ -177,6 +177,12 @@ func Test_FileStore_Get(t *testing.T) {
 
 		/* msg id (is always 2 bytes) */
 		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
 		0x78,
 
 		/*payload */
@@ -185,13 +191,13 @@ func Test_FileStore_Get(t *testing.T) {
 		0xED,
 	}
 
-	m := f.Get(key)
+	m := f.Get(key, 0x13)
 
 	if m == nil {
 		t.Fatalf("message not retreived from store")
 	}
 
-	if !bytes.Equal(exp, m.Bytes()) {
+	if !bytes.Equal(exp, m.Bytes(0x13)) {
 		t.Fatalf("message from store not same as what went in")
 	}
 }
@@ -200,11 +206,11 @@ func Test_FileStore_All(t *testing.T) {
 	storedir := "/tmp/TestStore/_all"
 	f := NewFileStore(storedir)
 	f.Open()
-	pm := newPublishMsg(QOS_TWO, "/t/r/v", []byte{0x01, 0x02})
+	pm := newPublishMsg(QOS_TWO, "/t/r/v", []byte{0x01, 0x02}, 0x13)
 	pm.setMsgId(121)
 
 	key := obound_mid2key(pm.MsgId())
-	f.Put(key, pm)
+	f.Put(key, pm, 0x13)
 
 	keys := f.All()
 	if len(keys) != 1 {
@@ -221,11 +227,11 @@ func Test_FileStore_Del(t *testing.T) {
 	f := NewFileStore(storedir)
 	f.Open()
 
-	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED})
+	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED}, 0x13)
 	pm.setMsgId(17)
 
 	key := ibound_mid2key(pm.MsgId())
-	f.Put(key, pm)
+	f.Put(key, pm, 0x13)
 
 	if !exists(storedir + "/i.17.msg") {
 		t.Fatalf("message not in store")
@@ -243,30 +249,30 @@ func Test_FileStore_Reset(t *testing.T) {
 	f := NewFileStore(storedir)
 	f.Open()
 
-	pm1 := newPublishMsg(QOS_ONE, "/q/w/e", []byte{0xBB})
+	pm1 := newPublishMsg(QOS_ONE, "/q/w/e", []byte{0xBB}, 0x13)
 	pm1.setMsgId(71)
 	key1 := ibound_mid2key(pm1.MsgId())
-	f.Put(key1, pm1)
+	f.Put(key1, pm1, 0x13)
 
-	pm2 := newPublishMsg(QOS_ONE, "/q/w/e", []byte{0xBB})
+	pm2 := newPublishMsg(QOS_ONE, "/q/w/e", []byte{0xBB}, 0x13)
 	pm2.setMsgId(72)
 	key2 := ibound_mid2key(pm2.MsgId())
-	f.Put(key2, pm2)
+	f.Put(key2, pm2, 0x13)
 
-	pm3 := newPublishMsg(QOS_ONE, "/q/w/e", []byte{0xBB})
+	pm3 := newPublishMsg(QOS_ONE, "/q/w/e", []byte{0xBB}, 0x13)
 	pm3.setMsgId(73)
 	key3 := ibound_mid2key(pm3.MsgId())
-	f.Put(key3, pm3)
+	f.Put(key3, pm3, 0x13)
 
-	pm4 := newPublishMsg(QOS_ONE, "/q/w/e", []byte{0xBB})
+	pm4 := newPublishMsg(QOS_ONE, "/q/w/e", []byte{0xBB}, 0x13)
 	pm4.setMsgId(74)
 	key4 := ibound_mid2key(pm4.MsgId())
-	f.Put(key4, pm4)
+	f.Put(key4, pm4, 0x13)
 
-	pm5 := newPublishMsg(QOS_ONE, "/q/w/e", []byte{0xBB})
+	pm5 := newPublishMsg(QOS_ONE, "/q/w/e", []byte{0xBB}, 0x13)
 	pm5.setMsgId(75)
 	key5 := ibound_mid2key(pm5.MsgId())
-	f.Put(key5, pm5)
+	f.Put(key5, pm5, 0x13)
 
 	if !exists(storedir + "/i.71.msg") {
 		t.Fatalf("message not in store")
@@ -347,11 +353,11 @@ func Test_MemoryStore_Reset(t *testing.T) {
 	m := NewMemoryStore()
 	m.Open()
 
-	pm := newPublishMsg(QOS_TWO, "/f/r/s", []byte{0xAB})
+	pm := newPublishMsg(QOS_TWO, "/f/r/s", []byte{0xAB}, 0x13)
 	pm.setMsgId(81)
 
 	key := obound_mid2key(pm.MsgId())
-	m.Put(key, pm)
+	m.Put(key, pm, 0x13)
 
 	if len(m.messages) != 1 {
 		t.Fatalf("message not in memstore")
@@ -368,11 +374,11 @@ func Test_MemoryStore_write(t *testing.T) {
 	m := NewMemoryStore()
 	m.Open()
 
-	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED})
+	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED}, 0x13)
 	pm.setMsgId(91)
 
 	key := ibound_mid2key(pm.MsgId())
-	m.Put(key, pm)
+	m.Put(key, pm, 0x13)
 
 	if len(m.messages) != 1 {
 		t.Fatalf("message not in store")
@@ -382,11 +388,11 @@ func Test_MemoryStore_write(t *testing.T) {
 func Test_MemoryStore_Get(t *testing.T) {
 	m := NewMemoryStore()
 	m.Open()
-	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED})
+	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED}, 0x13)
 	pm.setMsgId(120)
 
 	key := obound_mid2key(pm.MsgId())
-	m.Put(key, pm)
+	m.Put(key, pm, 0x13)
 
 	if len(m.messages) != 1 {
 		t.Fatalf("message not in store")
@@ -397,7 +403,7 @@ func Test_MemoryStore_Get(t *testing.T) {
 		0x32, // qos 1
 
 		/* remlen */
-		0x0d,
+		0x13,
 
 		/* topic, msg id in varheader */
 		0x00, // length of topic
@@ -411,6 +417,12 @@ func Test_MemoryStore_Get(t *testing.T) {
 
 		/* msg id (is always 2 bytes) */
 		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
 		0x78,
 
 		/*payload */
@@ -419,13 +431,13 @@ func Test_MemoryStore_Get(t *testing.T) {
 		0xED,
 	}
 
-	msg := m.Get(key)
+	msg := m.Get(key, 0x13)
 
 	if msg == nil {
 		t.Fatalf("message not retreived from store")
 	}
 
-	if !bytes.Equal(exp, msg.Bytes()) {
+	if !bytes.Equal(exp, msg.Bytes(0x13)) {
 		t.Fatalf("message from store not same as what went in")
 	}
 }
@@ -434,12 +446,12 @@ func Test_MemoryStore_Del(t *testing.T) {
 	m := NewMemoryStore()
 	m.Open()
 
-	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED})
+	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED}, 0x13)
 	pm.setMsgId(17)
 
 	key := obound_mid2key(pm.MsgId())
 
-	m.Put(key, pm)
+	m.Put(key, pm, 0x13)
 
 	if len(m.messages) != 1 {
 		t.Fatalf("message not in store")

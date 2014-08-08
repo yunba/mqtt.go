@@ -161,7 +161,7 @@ func Test_decode_connack(t *testing.T) {
 		0x00, // reserved
 		0x00, // return code (CONN_ACCEPTED)
 	}
-	m := decode(connack)
+	m := decode(connack, 0x13)
 	if m.msgType() != CONNACK {
 		t.Errorf("decode bad message type expected CONNACK, got %v", m.msgType())
 	}
@@ -180,7 +180,7 @@ func Test_decode_connack(t *testing.T) {
 		0x00, // reserved
 		0x01, // return code (CONN_REF_BAD_PROTO_VER)
 	}
-	m = decode(connack)
+	m = decode(connack, 0x13)
 	if m.msgType() != CONNACK {
 		t.Errorf("decode bad message type expected CONNACK, got %v", m.msgType())
 	}
@@ -199,7 +199,7 @@ func Test_decode_connack(t *testing.T) {
 		0x00, // reserved
 		0x02, // return code (CONN_REF_ID_REJ
 	}
-	m = decode(connack)
+	m = decode(connack, 0x13)
 	if m.msgType() != CONNACK {
 		t.Errorf("decode bad message type expected CONNACK, got %v", m.msgType())
 	}
@@ -218,7 +218,7 @@ func Test_decode_connack(t *testing.T) {
 		0x00, // reserved
 		0x03, // return code (CONN_REF_SERV_UNAVAIL)
 	}
-	m = decode(connack)
+	m = decode(connack, 0x13)
 	if m.msgType() != CONNACK {
 		t.Errorf("decode bad message type expected CONNACK, got %v", m.msgType())
 	}
@@ -237,7 +237,7 @@ func Test_decode_connack(t *testing.T) {
 		0x00, // reserved
 		0x04, // return code (CONN_REF_BAD_USER_PASS
 	}
-	m = decode(connack)
+	m = decode(connack, 0x13)
 	if m.msgType() != CONNACK {
 		t.Errorf("decode bad message type expected CONNACK, got %v", m.msgType())
 	}
@@ -256,7 +256,7 @@ func Test_decode_connack(t *testing.T) {
 		0x00, // reserved
 		0x05, // return code (CONN_REF_NOT_AUTH)
 	}
-	m = decode(connack)
+	m = decode(connack, 0x13)
 	if m.msgType() != CONNACK {
 		t.Errorf("decode bad message type expected CONNACK, got %v", m.msgType())
 	}
@@ -278,13 +278,27 @@ func Benchmark_decode_connack(b *testing.B) {
 		0x04, // return code (CONN_REF_BAD_USER_PASS
 	}
 	for i := 0; i < b.N; i++ {
-		decode(connack)
+		decode(connack, 0x03)
+	}
+}
+
+func Benchmark_decode_connack_v19(b *testing.B) {
+	connack := []byte{
+		/* Fixed Header */
+		0x20, // msgtype (CONNACK)
+		0x02, // remlen
+		/* Variable Header */
+		0x00, // reserved
+		0x04, // return code (CONN_REF_BAD_USER_PASS
+	}
+	for i := 0; i < b.N; i++ {
+		decode(connack, 0x13)
 	}
 }
 
 func Test_Bytes_connect(t *testing.T) {
-	m := newConnectMsg(false, false, QOS_ZERO, false, "", []byte(""), "mycid", "", "", 10)
-	bs := m.Bytes()
+	m := newConnectMsg(false, false, QOS_ZERO, false, "", []byte(""), "mycid", "", "", 10, 0x13)
+	bs := m.Bytes(0x13)
 	if len(bs) != 21 {
 		t.Errorf("len(m.Bytes()) is wrong, expected 21, got %d", len(bs))
 	}
@@ -301,7 +315,7 @@ func Test_Bytes_connect(t *testing.T) {
 		'd',
 		'p',
 
-		0x03, // proto version
+		0x13, // proto version
 
 		0x00, // connect flags
 
@@ -323,8 +337,8 @@ func Test_Bytes_connect(t *testing.T) {
 		}
 	}
 
-	m = newConnectMsg(true, true, QOS_TWO, true, "/all/wills/go/here", []byte("good bye everybody :("), "TheClientID", "TheUserName", "ThePassWord", 0xABCD)
-	bs = m.Bytes()
+	m = newConnectMsg(true, true, QOS_TWO, true, "/all/wills/go/here", []byte("good bye everybody :("), "TheClientID", "TheUserName", "ThePassWord", 0xABCD, 0x13)
+	bs = m.Bytes(0x13)
 	if len(bs) != 96 {
 		t.Errorf("len(m.Bytes()) is wrong, expected 96, got %d", len(bs))
 	}
@@ -341,7 +355,7 @@ func Test_Bytes_connect(t *testing.T) {
 		'd',
 		'p',
 
-		0x03, // proto version
+		0x13, // proto version
 
 		0xF6, // connect flags
 
@@ -446,18 +460,47 @@ func Test_Bytes_connect(t *testing.T) {
 func Test_decode_puback(t *testing.T) {
 	bs := []byte{
 		0x40, // type
-		0x02, // remlen
+		0x08, // remlen
 		0x00, // msg id (msb)
 		0x09, // msg id (lsb)
 	}
 
-	m := decode(bs)
+	m := decode(bs, 0x03)
 
 	if m.msgType() != PUBACK {
 		t.Errorf("decode puback wrong message type: %v", m.msgType())
 	}
 
-	if m.remLen() != 2 {
+	if m.remLen() != 8 {
+		t.Errorf("decode puback wrong remlen: %v", m.remLen())
+	}
+
+	if m.MsgId() != 9 {
+		t.Errorf("decode puback wrong message id: %v", m.MsgId())
+	}
+}
+
+func Test_decode_puback_v19(t *testing.T) {
+	bs := []byte{
+		0x40, // type
+		0x08, // remlen
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00, // msg id (msb)
+		0x09, // msg id (lsb)
+	}
+
+	m := decode(bs, 0x13)
+
+	if m.msgType() != PUBACK {
+		t.Errorf("decode puback wrong message type: %v", m.msgType())
+	}
+
+	if m.remLen() != 8 {
 		t.Errorf("decode puback wrong remlen: %v", m.remLen())
 	}
 
@@ -478,7 +521,40 @@ func Test_decode_suback(t *testing.T) {
 		0x00, // qos (4)
 		0x01, // qos (5)
 	}
-	m := decode(bs)
+	m := decode(bs, 0x03)
+	if m.msgType() != SUBACK {
+		t.Errorf("decode suback wrong message type %v", m.msgType())
+	}
+	if m.remLen() != 0 {
+		t.Errorf("decode suback wrong remlen: %d", m.remLen())
+	}
+	if m.MsgId() != 43794 {
+		t.Fatalf("decode suback wrong message id %d", m.MsgId())
+	}
+	if !bytes.Equal(m.Payload(), []byte{1, 2, 0, 0, 1}) {
+		t.Fatalf("decode wrong payload")
+	}
+}
+
+func Test_decode_suback_v19(t *testing.T) {
+	bs := []byte{
+		0x90, // type
+		0x00, // remlen
+		0x00, // msg id
+		0x00, // msg id
+		0x00, // msg id
+		0x00, // msg id
+		0x00, // msg id
+		0x00, // msg id
+		0xAB, // msg id (msb)
+		0x12, // msg id (lsb)
+		0x01, // qos (1)
+		0x02, // qos (2)
+		0x00, // qos (3)
+		0x00, // qos (4)
+		0x01, // qos (5)
+	}
+	m := decode(bs, 0x13)
 	if m.msgType() != SUBACK {
 		t.Errorf("decode suback wrong message type %v", m.msgType())
 	}
@@ -500,7 +576,32 @@ func Test_decode_unsuback(t *testing.T) {
 		0xAB, // msg id (msb)
 		0x12, // msg id (lsb)
 	}
-	m := decode(bs)
+	m := decode(bs, 0x03)
+	if m.msgType() != UNSUBACK {
+		t.Errorf("decode unsuback wrong message type %v", m.msgType())
+	}
+	if m.remLen() != 0 {
+		t.Errorf("decode unsuback wrong remlen: %d", m.remLen())
+	}
+	if m.MsgId() != 43794 {
+		t.Fatalf("decode unsuback wrong message id %d", m.MsgId())
+	}
+}
+
+func Test_decode_unsuback_v19(t *testing.T) {
+	bs := []byte{
+		0xB0, // type
+		0x00, // remlen
+		0x00, //
+		0x00, //
+		0x00, //
+		0x00, //
+		0x00, //
+		0x00, //
+		0xAB, // msg id (msb)
+		0x12, // msg id (lsb)
+	}
+	m := decode(bs, 0x13)
 	if m.msgType() != UNSUBACK {
 		t.Errorf("decode unsuback wrong message type %v", m.msgType())
 	}

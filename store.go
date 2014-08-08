@@ -31,8 +31,8 @@ const (
 // possible by prepending "i." or "o." to each message id
 type Store interface {
 	Open()
-	Put(string, *Message)
-	Get(string) *Message
+	Put(string, *Message, byte)
+	Get(string, byte) *Message
 	All() []string
 	Del(string)
 	Close()
@@ -43,7 +43,7 @@ type Store interface {
 // where X is 'i' or 'o'
 func key2mid(key string) MId {
 	s := key[2:]
-	i, err := strconv.Atoi(s)
+	i, err := strconv.ParseUint(s, 10, 0)
 	chkerr(err)
 	return MId(i)
 }
@@ -59,7 +59,7 @@ func obound_mid2key(id MId) string {
 }
 
 // govern which outgoing messages are persisted
-func persist_obound(s Store, m *Message) {
+func persist_obound(s Store, m *Message, protocolVersion byte) {
 	switch m.QoS() {
 	case QOS_ZERO:
 		switch m.msgType() {
@@ -77,19 +77,19 @@ func persist_obound(s Store, m *Message) {
 		case PUBLISH:
 			// Sending publish. store in obound
 			// until puback received
-			s.Put(obound_mid2key(m.MsgId()), m)
+			s.Put(obound_mid2key(m.MsgId()), m, protocolVersion)
 		case PUBREL:
 			// Sending pubrel. overwrite publish
 			// in obound until pubcomp received
-			s.Put(obound_mid2key(m.MsgId()), m)
+			s.Put(obound_mid2key(m.MsgId()), m, protocolVersion)
 		case SUBSCRIBE:
 			// Sending subscribe. store in obound
 			// until suback received
-			s.Put(obound_mid2key(m.MsgId()), m)
+			s.Put(obound_mid2key(m.MsgId()), m, protocolVersion)
 		case UNSUBSCRIBE:
 			// Sending unsubscribe. store in obound
 			// until unsuback received
-			s.Put(obound_mid2key(m.MsgId()), m)
+			s.Put(obound_mid2key(m.MsgId()), m, protocolVersion)
 		default:
 			chkcond(false)
 		}
@@ -98,7 +98,7 @@ func persist_obound(s Store, m *Message) {
 		case PUBLISH:
 			// Sending publish. store in obound
 			// until pubrel received
-			s.Put(obound_mid2key(m.MsgId()), m)
+			s.Put(obound_mid2key(m.MsgId()), m, protocolVersion)
 		default:
 			chkcond(false)
 		}
@@ -106,7 +106,7 @@ func persist_obound(s Store, m *Message) {
 }
 
 // govern which incoming messages are persisted
-func persist_ibound(s Store, m *Message) {
+func persist_ibound(s Store, m *Message, protocolVersion byte) {
 	switch m.QoS() {
 	case QOS_ZERO:
 		switch m.msgType() {
@@ -138,11 +138,11 @@ func persist_ibound(s Store, m *Message) {
 		case PUBLISH:
 			// Received a publish. store it in ibound
 			// until puback sent
-			s.Put(ibound_mid2key(m.MsgId()), m)
+			s.Put(ibound_mid2key(m.MsgId()), m, protocolVersion)
 		case PUBREL:
 			// Received a pubrel. Overwrite publish in ibound
 			// until pubcomp sent
-			s.Put(ibound_mid2key(m.MsgId()), m)
+			s.Put(ibound_mid2key(m.MsgId()), m, protocolVersion)
 		default:
 			chkcond(false)
 		}
@@ -151,7 +151,7 @@ func persist_ibound(s Store, m *Message) {
 		case PUBLISH:
 			// Received a publish. store it in ibound
 			// until pubrel received
-			s.Put(ibound_mid2key(m.MsgId()), m)
+			s.Put(ibound_mid2key(m.MsgId()), m, protocolVersion)
 		default:
 			chkcond(false)
 		}

@@ -267,9 +267,9 @@ func Test_decodeRemLen(t *testing.T) {
 	}
 }
 
-func Test_NewConnectMessage_vheader(t *testing.T) {
 
-	cm := newConnectMsg(false, false, QOS_ZERO, false, "/wills", []byte("mywill"), "mycid", "", "", 0)
+func testNewConnectMessageVheader(t *testing.T, version byte) {
+	cm := newConnectMsg(false, false, QOS_ZERO, false, "/wills", []byte("mywill"), "mycid", "", "", 0, version)
 
 	if cm.QoS() != QOS_ZERO {
 		t.Errorf("NewConnectMessage wrong QoS")
@@ -277,8 +277,8 @@ func Test_NewConnectMessage_vheader(t *testing.T) {
 	if string(cm.vheader[2:8]) != "MQIsdp" {
 		t.Errorf("NewConnectMessage wrong protocol version name, expected MQIsdp, got %s", string(cm.vheader[2:8]))
 	}
-	if cm.vheader[8] != 0x03 {
-		t.Errorf("NewConnectMessage wrong protocol version number, expected 0x3, got 0x%X", cm.vheader[8])
+	if cm.vheader[8] != version {
+		t.Errorf("NewConnectMessage wrong protocol version number, expected 0x%X, got 0x%X", version, cm.vheader[8])
 	}
 	if cm.vheader[9] != 0x00 {
 		t.Errorf("NewConnectMessage bad connect byte, expected 0x0, got 0x%X", cm.vheader[9])
@@ -288,15 +288,15 @@ func Test_NewConnectMessage_vheader(t *testing.T) {
 		t.Errorf("NewConnectMessage bad timeout, expected 0, got %d", timeout)
 	}
 
-	cm = newConnectMsg(true, true, QOS_ONE, true, "/wills", []byte("mywill"), "mycid", "myself", "mypass", 15)
+	cm = newConnectMsg(true, true, QOS_ONE, true, "/wills", []byte("mywill"), "mycid", "myself", "mypass", 15, version)
 	if cm.QoS() != QOS_ZERO {
 		t.Errorf("NewConnectMessage wrong Qos")
 	}
 	if string(cm.vheader[2:8]) != "MQIsdp" {
 		t.Errorf("NewConnectMessage wrong protocol version name, expected MQIsdp, got %s", string(cm.vheader[2:8]))
 	}
-	if cm.vheader[8] != 0x03 {
-		t.Errorf("NewConnectMessage wrong protocol version number, expected 0x3, got 0x%X", cm.vheader[8])
+	if cm.vheader[8] != version {
+		t.Errorf("NewConnectMessage wrong protocol version number, expected 0x%X, got 0x%X", version, cm.vheader[8])
 	}
 	if cm.vheader[9] != 0xEE {
 		t.Errorf("NewConnectMessage bad connect byte, expected 0xEE, got 0x%X", cm.vheader[9])
@@ -306,15 +306,15 @@ func Test_NewConnectMessage_vheader(t *testing.T) {
 		t.Errorf("NewConnectMessage bad timeout, expected 15, got %d", timeout)
 	}
 
-	cm = newConnectMsg(true, false, QOS_TWO, false, "/wills", []byte("mywill"), "mycid", "myuser", "", 27)
+	cm = newConnectMsg(true, false, QOS_TWO, false, "/wills", []byte("mywill"), "mycid", "myuser", "", 27, version)
 	if cm.QoS() != QOS_ZERO {
 		t.Errorf("NewConnectMessage wrong Qos")
 	}
 	if string(cm.vheader[2:8]) != "MQIsdp" {
 		t.Errorf("NewConnectMessage wrong protocol version name, expected MQIsdp, got %s", string(cm.vheader[2:8]))
 	}
-	if cm.vheader[8] != 0x03 {
-		t.Errorf("NewConnectMessage wrong protocol version number, expected 0x3, got 0x%X", cm.vheader[8])
+	if cm.vheader[8] != version {
+		t.Errorf("NewConnectMessage wrong protocol version number, expected 0x%X, got 0x%X", version, cm.vheader[8])
 	}
 	if cm.vheader[9] != 0x92 {
 		t.Errorf("NewConnectMessage bad connect byte, expected 0x92, got 0x%X", cm.vheader[9])
@@ -324,20 +324,28 @@ func Test_NewConnectMessage_vheader(t *testing.T) {
 		t.Errorf("NewConnectMessage bad timeout, expected 15, got %d", timeout)
 	}
 
-	cm = newConnectMsg(true, false, QOS_TWO, false, "/wills", []byte("mywill"), "mycid", "myuser", "pass", 0xAB21)
+	cm = newConnectMsg(true, false, QOS_TWO, false, "/wills", []byte("mywill"), "mycid", "myuser", "pass", 0xAB21, version)
 	timeout = cm.timeout()
 	if timeout != 0xAB21 {
 		t.Errorf("NewConnectMessage bad timeout, expected 15, got %d", timeout)
 	}
 }
 
+func Test_NewConnectMessage_vheader(t *testing.T) {
+	testNewConnectMessageVheader(t, 0x03)
+}
+
+func Test_NewConnectMessage_vheader_v19(t *testing.T) {
+	testNewConnectMessageVheader(t, 0x13)
+}
+
 func Test_newConnectMsg_payload(t *testing.T) {
-	cm := newConnectMsg(true, false, QOS_TWO, false, "/wills", []byte("mywill"), "mycid", "", "", 0xAB21)
+	cm := newConnectMsg(true, false, QOS_TWO, false, "/wills", []byte("mywill"), "mycid", "", "", 0xAB21, 0x13)
 	if cm.remLen() != 19 {
 		t.Errorf("NewConnectionMessage bad remlen, expected 19, got %d", cm.remLen())
 	}
 
-	cm = newConnectMsg(true, true, QOS_TWO, false, "/wills", []byte("mywill"), "mycid", "", "", 0xAB21)
+	cm = newConnectMsg(true, true, QOS_TWO, false, "/wills", []byte("mywill"), "mycid", "", "", 0xAB21, 0x13)
 	if cm.remLen() != 35 {
 		t.Errorf("NewConnectionMessage bad remlen, expected 35, got %d", cm.remLen())
 	}
@@ -360,7 +368,7 @@ func Test_newConnectMsg_payload(t *testing.T) {
 		t.Errorf("NewConnectionMessage bad will message, expected mywill, got %s", string(cm.payload[17:23]))
 	}
 
-	cm = newConnectMsg(true, true, QOS_TWO, false, "/w", []byte("will"), "cid", "User", "Password", 0x1234)
+	cm = newConnectMsg(true, true, QOS_TWO, false, "/w", []byte("will"), "cid", "User", "Password", 0x1234, 0x13)
 
 	if cm.remLen() != 43 {
 		t.Errorf("NewConnectionMessage bad remlen, expected 35, got %d", cm.remLen())
@@ -406,7 +414,7 @@ func Test_Disconnect_Message(t *testing.T) {
 		t.Fatalf("NewDisconnectMessage bad msg type, got %v", dm.msgType())
 	}
 
-	bs := dm.Bytes()
+	bs := dm.Bytes(0x13)
 	exp := []byte{
 		0xE0,
 		0x00,
@@ -425,7 +433,7 @@ func Test_Disconnect_Message(t *testing.T) {
 }
 
 func Test_newPublishMessage_pm0(t *testing.T) {
-	pm := newPublishMsg(QOS_ZERO, "/a/b/c", []byte{0xBE, 0xEF, 0xED})
+	pm := newPublishMsg(QOS_ZERO, "/a/b/c", []byte{0xBE, 0xEF, 0xED}, 0x13)
 	exp := []byte{
 		/* msg type */
 		0x30,
@@ -449,7 +457,7 @@ func Test_newPublishMessage_pm0(t *testing.T) {
 		0xEF,
 		0xED,
 	}
-	bs := pm.Bytes()
+	bs := pm.Bytes(0x13)
 
 	if len(bs) != len(exp) {
 		t.Fatalf("new publish message has wrong number of bytes: %d, expected: %d", len(bs), len(exp))
@@ -463,7 +471,7 @@ func Test_newPublishMessage_pm0(t *testing.T) {
 }
 
 func Test_newPublishMessage_pm1(t *testing.T) {
-	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED})
+	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED}, 0x03)
 	pm.setMsgId(9080)
 	exp := []byte{
 		/* msg type */
@@ -491,7 +499,55 @@ func Test_newPublishMessage_pm1(t *testing.T) {
 		0xEF,
 		0xED,
 	}
-	bs := pm.Bytes()
+	bs := pm.Bytes(0x03)
+
+	if len(bs) != len(exp) {
+		t.Fatalf("new publish message has wrong number of bytes: %d, expected: %d", len(bs), len(exp))
+	}
+
+	for i := range exp {
+		if bs[i] != exp[i] {
+			t.Fatalf("new publish message has bad byte #%d, expected 0x%X, got 0x%X", i, exp[i], bs[i])
+		}
+	}
+}
+
+func Test_newPublishMessage_pm1_v19(t *testing.T) {
+	pm := newPublishMsg(QOS_ONE, "/a/b/c", []byte{0xBE, 0xEF, 0xED}, 0x13)
+	pm.setMsgId(9080)
+	exp := []byte{
+		/* msg type */
+		0x32,
+
+		/* remlen */
+		0x13,
+
+		/* topic, msg id in varheader */
+		0x00, // length of topic
+		0x06,
+		0x2F, // /
+		0x61, // a
+		0x2F, // /
+		0x62, // b
+		0x2F, // /
+		0x63, // c
+
+		/* message id  9080 base 10 */
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x23,
+		0x78,
+
+		/* payload */
+		0xBE,
+		0xEF,
+		0xED,
+	}
+	bs := pm.Bytes(0x13)
 
 	if len(bs) != len(exp) {
 		t.Fatalf("new publish message has wrong number of bytes: %d, expected: %d", len(bs), len(exp))
@@ -505,7 +561,7 @@ func Test_newPublishMessage_pm1(t *testing.T) {
 }
 
 func Test_newPubRelMessage(t *testing.T) {
-	prm := newPubRelMsg()
+	prm := newPubRelMsg(0x03)
 	prm.setMsgId(46)
 	exp := []byte{
 		/* msg type */
@@ -521,7 +577,42 @@ func Test_newPubRelMessage(t *testing.T) {
 		/* no payload */
 	}
 
-	bs := prm.Bytes()
+	bs := prm.Bytes(0x03)
+	if len(bs) != len(exp) {
+		t.Fatalf("new pubrel message has wrong number of bytes: %d, expected: %d", len(bs), len(exp))
+	}
+
+	for i := range exp {
+		if bs[i] != exp[i] {
+			t.Fatalf("new pubrel message has bad byte #%d, expected 0x%X, got 0x%X", i, exp[i], bs[i])
+		}
+	}
+}
+
+func Test_newPubRelMessage_v19(t *testing.T) {
+	prm := newPubRelMsg(0x13)
+	prm.setMsgId(46)
+	exp := []byte{
+		/* msg type */
+		0x62,
+
+		/* remlen */
+		0x08,
+
+		/* msg id 46 base 10 */
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x2E,
+
+		/* no payload */
+	}
+
+	bs := prm.Bytes(0x13)
 	if len(bs) != len(exp) {
 		t.Fatalf("new pubrel message has wrong number of bytes: %d, expected: %d", len(bs), len(exp))
 	}
@@ -535,9 +626,9 @@ func Test_newPubRelMessage(t *testing.T) {
 
 func Test_newSubscribeMessage(t *testing.T) {
 	filter, _ := NewTopicFilter("/a", 0)
-	sm := newSubscribeMsg(filter)
+	sm := newSubscribeMsg(0x03, filter)
 	sm.setMsgId(32)
-	bs := sm.Bytes()
+	bs := sm.Bytes(0x03)
 	exp := []byte{
 		/* msg type */
 		0x82,
@@ -564,11 +655,48 @@ func Test_newSubscribeMessage(t *testing.T) {
 	}
 }
 
+func Test_newSubscribeMessage_v19(t *testing.T) {
+	filter, _ := NewTopicFilter("/a", 0)
+	sm := newSubscribeMsg(0x13,filter)
+	sm.setMsgId(32)
+	bs := sm.Bytes(0x13)
+	exp := []byte{
+		/* msg type */
+		0x82,
+
+		/* remlen */
+		0x0D,
+
+		/* vheader (msg id) */
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x20,
+
+		/* payload */
+		0x00, // topic length
+		0x02, // topic length
+		0x2F, // /
+		0x61, // a
+		0x00, // requested qos
+	}
+
+	for i := range exp {
+		if bs[i] != exp[i] {
+			t.Fatalf("new subscribe message has bad byte #%d, expected 0x%X, got 0x%X", i, exp[i], bs[i])
+		}
+	}
+}
+
 func Test_newSubscribeMessage_multi(t *testing.T) {
 	filter1, _ := NewTopicFilter("/a", 1)
 	filter2, _ := NewTopicFilter("/b", 0)
 	filter3, _ := NewTopicFilter("/x/y/z", 2)
-	sm := newSubscribeMsg(filter1, filter2, filter3)
+	sm := newSubscribeMsg(0x03, filter1, filter2, filter3)
 	sm.setMsgId(3432)
 	if sm == nil {
 		t.Fatalf("newSubscribe message is nil")
@@ -608,7 +736,70 @@ func Test_newSubscribeMessage_multi(t *testing.T) {
 		0x7A, // z
 		0x02, // requested qos
 	}
-	bs := sm.Bytes()
+	bs := sm.Bytes(0x03)
+
+	if len(bs) != len(exp) {
+		t.Fatalf("newSubscribe message has wrong number of bytes, expected %d got %d", len(exp), len(bs))
+	}
+
+	for i := range exp {
+		if bs[i] != exp[i] {
+			t.Fatalf("new subscribe message has bad byte #%d, expected 0x%X, got 0x%X", i, exp[i], bs[i])
+		}
+	}
+}
+
+func Test_newSubscribeMessage_multi_v19(t *testing.T) {
+	filter1, _ := NewTopicFilter("/a", 1)
+	filter2, _ := NewTopicFilter("/b", 0)
+	filter3, _ := NewTopicFilter("/x/y/z", 2)
+	sm := newSubscribeMsg(0x13,filter1, filter2, filter3)
+	sm.setMsgId(3432)
+	if sm == nil {
+		t.Fatalf("newSubscribe message is nil")
+	}
+
+	exp := []byte{
+		/* msg type */
+		0x82,
+
+		/* remlen */
+		0x1B,
+
+		/* vheader (msg id) */
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x0D,
+		0x68,
+
+		/* payload */
+		0x00, // topic length
+		0x02, // topic length
+		0x2F, // /
+		0x61, // a
+		0x01, // requested qos
+
+		0x00, // topic length
+		0x02, // topic length
+		0x2F, // /
+		0x62, // b
+		0x00, // requested qos
+
+		0x00, // topic length
+		0x06, // topic length
+		0x2F, // /
+		0x78, // x
+		0x2F, // /
+		0x79, // y
+		0x2F, // /
+		0x7A, // z
+		0x02, // requested qos
+	}
+	bs := sm.Bytes(0x13)
 
 	if len(bs) != len(exp) {
 		t.Fatalf("newSubscribe message has wrong number of bytes, expected %d got %d", len(exp), len(bs))
@@ -622,7 +813,7 @@ func Test_newSubscribeMessage_multi(t *testing.T) {
 }
 
 func Test_newUnsubscribeMessage_unsb1(t *testing.T) {
-	um := newUnsubscribeMsg("z")
+	um := newUnsubscribeMsg(0x03, "z")
 	um.setMsgId(4213)
 
 	exp := []byte{
@@ -635,7 +826,39 @@ func Test_newUnsubscribeMessage_unsb1(t *testing.T) {
 		0x7A,
 	}
 
-	bs := um.Bytes()
+	bs := um.Bytes(0x03)
+	if len(bs) != len(exp) {
+		t.Fatalf("newUnsubscribe message has wrong number of bytes, expected %d got %d", len(exp), len(bs))
+	}
+
+	for i := range exp {
+		if bs[i] != exp[i] {
+			t.Fatalf("newUnsubscribe message has bad byte #%d, expected 0x%X, got 0x%X", i, exp[i], bs[i])
+		}
+	}
+}
+
+func Test_newUnsubscribeMessage_unsb1_v19(t *testing.T) {
+	um := newUnsubscribeMsg(0x13, "z")
+	um.setMsgId(4213)
+
+	exp := []byte{
+		0xA2, // msg type
+		0x0B, // remlen
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x10, // msg id (msb)
+		0x75, // msg id (lsb)
+		0x00, // topic length
+		0x01, // topic length
+		0x7A,
+	}
+
+	bs := um.Bytes(0x13)
 	if len(bs) != len(exp) {
 		t.Fatalf("newUnsubscribe message has wrong number of bytes, expected %d got %d", len(exp), len(bs))
 	}
@@ -648,7 +871,7 @@ func Test_newUnsubscribeMessage_unsb1(t *testing.T) {
 }
 
 func Test_newUnsubscribeMessage_unsb3(t *testing.T) {
-	um := newUnsubscribeMsg("/a", "/a/b", "/a/b/c")
+	um := newUnsubscribeMsg(0x03, "/a", "/a/b", "/a/b/c")
 	um.setMsgId(4213)
 
 	exp := []byte{
@@ -680,7 +903,58 @@ func Test_newUnsubscribeMessage_unsb3(t *testing.T) {
 		0x63, // c
 	}
 
-	bs := um.Bytes()
+	bs := um.Bytes(0x03)
+	if len(bs) != len(exp) {
+		t.Fatalf("newUnsubscribe message has wrong number of bytes, expected %d got %d", len(exp), len(bs))
+	}
+
+	for i := range exp {
+		if bs[i] != exp[i] {
+			t.Fatalf("newUnsubscribe message has bad byte #%d, expected 0x%X, got 0x%X", i, exp[i], bs[i])
+		}
+	}
+}
+
+func Test_newUnsubscribeMessage_unsb3_v19(t *testing.T) {
+	um := newUnsubscribeMsg(0x13, "/a", "/a/b", "/a/b/c")
+	um.setMsgId(4213)
+
+	exp := []byte{
+		0xA2, // msg type
+		0x1A, // remlen
+
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x10, // msg id (msb)
+		0x75, // msg id (lsb)
+
+		0x00, // topic length (1)
+		0x02, // topic length (1)
+		0x2F, // /
+		0x61, // a
+
+		0x00, // topic length (2)
+		0x04, // topic length (2)
+		0x2F, // /
+		0x61, // a
+		0x2F, // /
+		0x62, // b
+
+		0x00, // topic length (3)
+		0x06, // topic length (3)
+		0x2F, // /
+		0x61, // a
+		0x2F, // /
+		0x62, // b
+		0x2F, // /
+		0x63, // c
+	}
+
+	bs := um.Bytes(0x13)
 	if len(bs) != len(exp) {
 		t.Fatalf("newUnsubscribe message has wrong number of bytes, expected %d got %d", len(exp), len(bs))
 	}
@@ -713,7 +987,7 @@ func Test_NewMessage(t *testing.T) {
 		0x67, // g
 		0x65, // e
 	}
-	bs := m.Bytes()
+	bs := m.Bytes(0x13)
 
 	if len(bs) != len(exp) {
 		t.Fatalf("new publish message has wrong number of bytes: %d, expected: %d", len(bs), len(exp))
@@ -727,7 +1001,7 @@ func Test_NewMessage(t *testing.T) {
 }
 
 func Test_Topic_from_publish(t *testing.T) {
-	pm := newPublishMsg(QOS_ZERO, "/a/b/c", []byte{0xBE, 0xEF, 0xED})
+	pm := newPublishMsg(QOS_ZERO, "/a/b/c", []byte{0xBE, 0xEF, 0xED}, 0x13)
 
 	/*
 		// msg type

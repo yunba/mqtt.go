@@ -25,7 +25,12 @@ import (
 	"time"
 )
 
-import MQTT "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
+import MQTT "github.com/yunba/mqtt.go"
+
+var f MQTT.MessageHandler = func(client *MQTT.MqttClient, msg MQTT.Message) {
+	fmt.Printf("TOPIC: %s\n", msg.Topic())
+	fmt.Printf("MSG: %s\n", msg.Payload())
+}
 
 func main() {
 	stdin := bufio.NewReader(os.Stdin)
@@ -40,7 +45,8 @@ func main() {
 	password := flag.String("password", "", "Password to match username")
 	flag.Parse()
 
-	connOpts := MQTT.NewClientOptions().AddBroker(*server).SetClientId(*clientid).SetCleanSession(true)
+	connOpts := MQTT.NewClientOptions().AddBroker(*server).SetClientId(*clientid).SetCleanSession(true).SetProtocolVersion(0x13)
+	connOpts.SetDefaultPublishHandler(f)
 	if *username != "" {
 		connOpts.SetUsername(*username)
 		if *password != "" {
@@ -62,7 +68,7 @@ func main() {
 			os.Exit(0)
 		}
 		r := client.Publish(MQTT.QoS(*qos), *topic, []byte(strings.TrimSpace(message)))
-		<-r
+		<-r // received puback will send message to chan r,   net.go: case PUBACK
 		fmt.Println("Message Sent")
 	}
 }

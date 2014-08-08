@@ -259,7 +259,7 @@ func Test_MatchAndDispatch(t *testing.T) {
 		calledback <- true
 	}
 
-	pub := newPublishMsg(QOS_TWO, "a", []byte("foo"))
+	pub := newPublishMsg(QOS_TWO, "a", []byte("foo"), 0x13)
 
 	msgs := make(chan *Message)
 

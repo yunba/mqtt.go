@@ -15,8 +15,9 @@
 package mqtt
 
 import (
-	"io/ioutil"
 	"log"
+	"os"
+	"fmt"
 )
 
 var (
@@ -27,8 +28,13 @@ var (
 )
 
 func init() {
-	ERROR = log.New(ioutil.Discard, "", 0)
-	CRITICAL = log.New(ioutil.Discard, "", 0)
-	WARN = log.New(ioutil.Discard, "", 0)
-	DEBUG = log.New(ioutil.Discard, "", 0)
+	logfile,err := os.OpenFile("mqtt.log",os.O_RDWR|os.O_CREATE, os.ModeAppend | 0666);
+    if err!=nil {
+        fmt.Printf("%s\r\n",err.Error());
+        os.Exit(-1);
+    }
+	ERROR = log.New(logfile, "", 0)
+	CRITICAL = log.New(logfile, "", 0)
+	WARN = log.New(logfile, "", 0)
+	DEBUG = log.New(logfile, "", 0)
 }

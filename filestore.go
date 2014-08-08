@@ -78,7 +78,7 @@ func (store *FileStore) Close() {
 
 // Put will put a message into the store, associated with the provided
 // key value.
-func (store *FileStore) Put(key string, m *Message) {
+func (store *FileStore) Put(key string, m *Message, protocolVersion byte) {
 	store.Lock()
 	defer store.Unlock()
 	chkcond(store.opened)
@@ -87,13 +87,13 @@ func (store *FileStore) Put(key string, m *Message) {
 		backup(store.directory, key) // make a copy of what already exists
 		defer unbackup(store.directory, key)
 	}
-	write(store.directory, key, m)
+	write(store.directory, key, m, protocolVersion)
 	chkcond(exists(full))
 }
 
 // Get will retrieve a message from the store, the one associated with
 // the provided key value.
-func (store *FileStore) Get(key string) (m *Message) {
+func (store *FileStore) Get(key string, protocolVersion byte) (m *Message) {
 	store.RLock()
 	defer store.RUnlock()
 	chkcond(store.opened)
@@ -105,7 +105,7 @@ func (store *FileStore) Get(key string) (m *Message) {
 	chkerr(oerr)
 	all, rerr := ioutil.ReadAll(mfile)
 	chkerr(rerr)
-	msg := decode(all)
+	msg := decode(all, protocolVersion)
 	cerr := mfile.Close()
 	chkerr(cerr)
 	return msg
@@ -183,11 +183,11 @@ func bkppath(store string, key string) string {
 // if a message with m's message id already exists, it will
 // be overwritten
 // X will be 'i' for inbound messages, and O for outbound messages
-func write(store, key string, m *Message) {
+func write(store, key string, m *Message, protocolVersion byte) {
 	filepath := fullpath(store, key)
 	f, err := os.Create(filepath)
 	chkerr(err)
-	_, werr := f.Write(m.Bytes())
+	_, werr := f.Write(m.Bytes(protocolVersion))
 	chkerr(werr)
 	cerr := f.Close()
 	chkerr(cerr)

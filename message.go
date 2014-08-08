@@ -82,7 +82,8 @@ func newConnectMsg(
 	clientid,
 	user,
 	password string,
-	keepalive uint16) *Message {
+	keepalive uint16,
+    protocolVersion byte) *Message {
 	m := newMsg(CONNECT, false, 0, false)
 
 	m.remlen = uint32(0)
@@ -91,7 +92,7 @@ func newConnectMsg(
 	m.appendVHeaderField("MQIsdp")
 
 	/* Protocol Version */
-	m.vheader = append(m.vheader, 0x03)
+	m.vheader = append(m.vheader, protocolVersion)
 
 	/* Connect Byte */
 	b := byte(0)
@@ -141,7 +142,7 @@ func newConnectMsgFromOptions(options ClientOptions) *Message {
 	m.appendVHeaderField("MQIsdp")
 
 	/* Protocol Version */
-	m.vheader = append(m.vheader, 0x03)
+	m.vheader = append(m.vheader, options.protocolVersion)
 
 	/* Connect Byte */
 	b := byte(0)
@@ -358,7 +359,7 @@ func (m *Message) setMsgId(id MId) {
 
 //newSubscribeMsg takes a list of TopicFilter
 //and returns a Message initialized with these values
-func newSubscribeMsg(filters ...*TopicFilter) *Message {
+func newSubscribeMsg(protocolVersion byte, filters ...*TopicFilter)  *Message {
 
 	m := newMsg(SUBSCRIBE, false, QOS_ONE, false)
 
@@ -367,7 +368,12 @@ func newSubscribeMsg(filters ...*TopicFilter) *Message {
 		m.appendPayloadField([]byte{byte(filters[i].QoS)})
 	}
 
-	numbytes := uint(len(m.vheader) + len(m.payload) + 2)
+	var numbytes uint
+	if protocolVersion == 0x03 {
+		numbytes = uint(len(m.vheader) + len(m.payload) + 2)
+	}else if protocolVersion == 0x13 {
+		numbytes = uint(len(m.vheader) + len(m.payload) + 8)
+	}
 	m.remlen = encodeLength(numbytes)
 	return m
 }
@@ -375,14 +381,19 @@ func newSubscribeMsg(filters ...*TopicFilter) *Message {
 //newUnsubscribeMsg takes a list of strings of topics that are to be
 //unsubscribed from and returns a pointer to a Message initialized with
 //these values
-func newUnsubscribeMsg(subscriptions ...string) *Message {
+func newUnsubscribeMsg(protocolVersion byte, subscriptions ...string) *Message {
 	m := newMsg(UNSUBSCRIBE, false, QOS_ONE, false)
 
 	for i := range subscriptions {
 		m.appendPayloadSizedField(subscriptions[i])
 	}
 
-	numbytes := uint(len(m.vheader) + len(m.payload) + 2)
+	var numbytes uint
+	if protocolVersion == 0x03 {
+		numbytes = uint(len(m.vheader) + len(m.payload) + 2)
+	}else if protocolVersion == 0x13 {
+		numbytes = uint(len(m.vheader) + len(m.payload) + 8)
+	}
 	m.remlen = encodeLength(numbytes)
 	return m
 }
@@ -390,7 +401,7 @@ func newUnsubscribeMsg(subscriptions ...string) *Message {
 //newPublishMsg takes a QoS value, a string of the topic the message
 //is to be published on and a slice of bytes of the payload of the message
 //It returns a pointer to a Message initialized with these values
-func newPublishMsg(qos QoS, topic string, payload []byte) *Message {
+func newPublishMsg(qos QoS, topic string, payload []byte, protocolVersion byte) *Message {
 	m := newMsg(PUBLISH, false, qos, false)
 
 	/* vheader, topic */
@@ -401,51 +412,79 @@ func newPublishMsg(qos QoS, topic string, payload []byte) *Message {
 
 	numbytes := uint(len(m.vheader) + len(m.payload))
 	if qos > QOS_ZERO {
-		numbytes += 2
+		if protocolVersion == 0x13 {
+			numbytes += 8
+		} else {
+			numbytes += 2
+		}
 	}
 	m.remlen = encodeLength(numbytes)
 	return m
 }
 
 //newPubRelMsg returns a pointer to a new PUBREL Message
-func newPubRelMsg() *Message {
+func newPubRelMsg(protocolVersion byte) *Message {
 	m := newMsg(PUBREL, false, QOS_ONE, false)
-	m.remlen = encodeLength(uint(len(m.vheader)) + 2)
+	if protocolVersion == 0x03 {
+		m.remlen = encodeLength(uint(len(m.vheader)) + 2)
+	}else if protocolVersion == 0x13 {
+		m.remlen = encodeLength(uint(len(m.vheader)) + 8)
+	}
 	return m
 }
 
 //newPubRedMsg returns a pointer to a new PUBREC Message
-func newPubRecMsg() *Message {
+func newPubRecMsg(protocolVersion byte) *Message {
 	m := newMsg(PUBREC, false, QOS_ZERO, false)
-	m.remlen = encodeLength(uint(len(m.vheader)) + 2)
+	if protocolVersion == 0x03 {
+		m.remlen = encodeLength(uint(len(m.vheader)) + 2)
+	}else if protocolVersion == 0x13{
+		m.remlen = encodeLength(uint(len(m.vheader)) + 8)
+	}
 	return m
 }
 
 //newPubCompMsg returns a pointer to a new PUBCOMP Message
-func newPubCompMsg() *Message {
+func newPubCompMsg(protocolVersion byte) *Message {
 	m := newMsg(PUBCOMP, false, QOS_ZERO, false)
-	m.remlen = encodeLength(uint(len(m.vheader)) + 2)
+	if protocolVersion == 0x03{
+		m.remlen = encodeLength(uint(len(m.vheader)) + 2)
+	}else if protocolVersion == 0x13{
+		m.remlen = encodeLength(uint(len(m.vheader)) + 8)
+	}
 	return m
 }
 
 //newPubAckMsg returns a pointer to a new PUBACK Message
-func newPubAckMsg() *Message {
+func newPubAckMsg(protocolVersion byte) *Message {
 	m := newMsg(PUBACK, false, QOS_ZERO, false)
-	m.remlen = encodeLength(uint(len(m.vheader)) + 2)
+	if protocolVersion == 0x03 {
+		m.remlen = encodeLength(uint(len(m.vheader)) + 2)
+	}else if protocolVersion == 0x13 {
+		m.remlen = encodeLength(uint(len(m.vheader)) + 8)
+	}
 	return m
 }
 
 //newSubAckMsg returns a pointer to a new SUBACK Message
-func newSubackMsg() *Message {
+func newSubackMsg(protocolVersion byte) *Message {
 	m := newMsg(SUBACK, false, QOS_ZERO, false)
-	m.remlen = encodeLength(uint(len(m.vheader)) + 2)
+	if protocolVersion == 0x03 {
+		m.remlen = encodeLength(uint(len(m.vheader)) + 2)
+	}else if protocolVersion == 0x13{
+		m.remlen = encodeLength(uint(len(m.vheader)) + 8)
+	}
 	return m
 }
 
 //newUnsubackMsg returns a pointer to a new UNSUBACK Message
-func newUnsubackMsg() *Message {
+func newUnsubackMsg(protocolVersion byte) *Message {
 	m := newMsg(UNSUBACK, false, QOS_ZERO, false)
-	m.remlen = encodeLength(uint(len(m.vheader)) + 2)
+	if protocolVersion == 0x03{
+		m.remlen = encodeLength(uint(len(m.vheader)) + 2)
+	}else if protocolVersion == 0x13 {
+		m.remlen = encodeLength(uint(len(m.vheader)) + 8)
+	}
 	return m
 }
 

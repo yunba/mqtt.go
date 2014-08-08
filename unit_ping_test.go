@@ -16,7 +16,7 @@ package mqtt
 
 import "testing"
 
-func Test_NewPingReqMessage(t *testing.T) {
+func testNewPingReqMessage(t *testing.T, version byte){
 	pr := newPingReqMsg()
 	if pr.msgType() != PINGREQ {
 		t.Errorf("NewPingReqMessage bad msg type: %v", pr.msgType())
@@ -30,7 +30,7 @@ func Test_NewPingReqMessage(t *testing.T) {
 		0x00,
 	}
 
-	bs := pr.Bytes()
+	bs := pr.Bytes(version)
 
 	if len(bs) != 2 {
 		t.Errorf("NewPingReqMessage.Bytes() wrong length: %d", len(bs))
@@ -41,16 +41,33 @@ func Test_NewPingReqMessage(t *testing.T) {
 	}
 }
 
-func Test_DecodeMessage_pingresp(t *testing.T) {
+func Test_NewPingReqMessage_v3(t *testing.T) {
+	testNewPingReqMessage(t, 0x03)
+}
+
+func Test_NewPingReqMessage_v19(t *testing.T) {
+	testNewPingReqMessage(t, 0x13)
+}
+
+
+func testDecodeMessagePingResp(t *testing.T, version byte){
 	bs := []byte{
 		0xD0,
 		0x00,
 	}
-	presp := decode(bs)
+	presp := decode(bs, version)
 	if presp.msgType() != PINGRESP {
 		t.Errorf("DecodeMessage ping response wrong msg type: %v", presp.msgType())
 	}
 	if presp.remLen() != 0 {
 		t.Errorf("DecodeMessage ping response wrong rem len: %d", presp.remLen())
 	}
+
+}
+func Test_DecodeMessage_Pingresp_v3(t *testing.T) {
+	testDecodeMessagePingResp(t, 0x03)
+}
+
+func Test_DecodeMessage_Pingresp_v19(t *testing.T) {
+	testDecodeMessagePingResp(t, 0x13)
 }

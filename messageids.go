@@ -16,12 +16,15 @@ package mqtt
 
 import (
 	"sync"
+	"time"
+	"math"
+	"math/rand"
 )
 
 // MId is 16 bit message id as specified by the MQTT spec.
 // In general, these values should not be depended upon by
 // the client application.
-type MId uint16
+type MId uint64
 
 type messageIds struct {
 	sync.Mutex
@@ -60,4 +63,13 @@ func (mids *messageIds) freeId(id MId) {
 
 func (mids *messageIds) getId() MId {
 	return <-mids.idChan
+}
+
+func (mids *messageIds) getId64() MId {
+	timestamp := time.Now()
+	var high = uint64(timestamp.Unix()) << (64 - 41)
+	rand.Seed(timestamp.UnixNano())
+	var low = uint64(rand.Int31n(int32(math.Pow(2, 64-41))))
+	var id = MId(high | low)
+	return id;
 }

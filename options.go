@@ -54,6 +54,7 @@ type ClientOptions struct {
 	onconnlost      OnConnectionLost
 	mids            messageIds
 	writeTimeout    time.Duration
+	protocolVersion byte
 }
 
 // NewClientClientOptions will create a new ClientClientOptions type with some
@@ -83,6 +84,7 @@ func NewClientOptions() *ClientOptions {
 		onconnlost:      DefaultErrorHandler,
 		mids:            messageIds{index: make(map[MId]bool)},
 		writeTimeout:    0, // 0 represents timeout disabled
+		protocolVersion: 0x03,
 	}
 	o.msgRouter, o.stopRouter = newRouter()
 	return o
@@ -220,4 +222,10 @@ func (opts *ClientOptions) SetOnConnectionLost(onLost OnConnectionLost) *ClientO
 // timeout error. A duration of 0 never times out.
 func (opts *ClientOptions) SetWriteTimeout(t time.Duration) {
 	opts.writeTimeout = t
+}
+
+// SetProtocolVersion will set ProtocolVersion
+func (opts *ClientOptions) SetProtocolVersion(v byte) *ClientOptions{
+	opts.protocolVersion = v
+	return opts
 }

@@ -48,25 +48,26 @@ func (store *MemoryStore) Open() {
 
 // Put takes a key and a pointer to a Message and stores the
 // message.
-func (store *MemoryStore) Put(key string, message *Message) {
+func (store *MemoryStore) Put(key string, message *Message, protocolVersion byte) {
 	store.Lock()
 	defer store.Unlock()
 	chkcond(store.opened)
 	store.messages[key] = message
+	DEBUG.Println(STR, "protocolVersion", protocolVersion)
 }
 
 // Get takes a key and looks in the store for a matching Message
 // returning either the Message pointer or nil.
-func (store *MemoryStore) Get(key string) *Message {
+func (store *MemoryStore) Get(key string, protocolVersion byte) *Message {
 	store.RLock()
 	defer store.RUnlock()
 	chkcond(store.opened)
 	mid := key2mid(key)
 	m := store.messages[key]
 	if m == nil {
-		CRITICAL.Println(STR, "memorystore get: message", mid, "not found")
+		CRITICAL.Println(STR, "memorystore get: message", mid, "not found", protocolVersion)
 	} else {
-		DEBUG.Println(STR, "memorystore get: message", mid, "found")
+		DEBUG.Println(STR, "memorystore get: message", mid, "found", protocolVersion)
 	}
 	return m
 }

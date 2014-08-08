@@ -78,7 +78,7 @@ func decodeTopic(bytes []byte) (tlen uint16, t string) {
 
 //decode takes a slice of bytes as received over the network
 //and returns a Message pointer to a Message struct
-func decode(bytes []byte) *Message {
+func decode(bytes []byte, protocolVersion byte) *Message {
 	m := &Message{}
 
 	m.SetQoS(decodeQos(bytes[0]))
@@ -100,25 +100,22 @@ func decode(bytes []byte) *Message {
 		/* No vheader */
 		/* No Payload */
 
-	case PUBACK:
-		m.setMsgId(MId(binary.BigEndian.Uint16(bytes[:2])))
-		/* No Payload */
-
-	case PUBREC:
-		m.setMsgId(MId(binary.BigEndian.Uint16(bytes[:2])))
-		/* No Payload */
-
-	case PUBREL:
-		m.setMsgId(MId(binary.BigEndian.Uint16(bytes[:2])))
-		/* No Payload */
-
-	case PUBCOMP:
-		m.setMsgId(MId(binary.BigEndian.Uint16(bytes[:2])))
+	case PUBACK, PUBREC, PUBREL, PUBCOMP, UNSUBACK:
+		if protocolVersion == 0x03 {
+			m.setMsgId(MId(binary.BigEndian.Uint16(bytes[:2])))
+		}else if protocolVersion == 0x13 {
+			m.setMsgId(MId(binary.BigEndian.Uint64(bytes[:8])))
+		}
 		/* No Payload */
 
 	case SUBACK:
-		m.setMsgId(MId(binary.BigEndian.Uint16(bytes[:2])))
-		m.appendPayloadField(bytes[2:])
+		if protocolVersion == 0x03 {
+			m.setMsgId(MId(binary.BigEndian.Uint16(bytes[:2])))
+			m.appendPayloadField(bytes[2:])
+		}else if protocolVersion == 0x13 {
+			m.setMsgId(MId(binary.BigEndian.Uint64(bytes[:8])))
+			m.appendPayloadField(bytes[8:])
+		}
 
 	case PUBLISH:
 		// we are past the fixed header and variable remlen
@@ -138,14 +135,16 @@ func decode(bytes []byte) *Message {
 
 		// if QoS > 0, 2 message id bytes are after the topic string
 		if m.QoS() != QOS_ZERO {
-			m.setMsgId(MId(binary.BigEndian.Uint16(bytes[:2])))
-			m.appendPayloadField(bytes[2:])
+			if protocolVersion == 0x03 {
+				m.setMsgId(MId(binary.BigEndian.Uint16(bytes[:2])))
+				m.appendPayloadField(bytes[2:])
+			}else if protocolVersion == 0x13 {
+				m.setMsgId(MId(binary.BigEndian.Uint64(bytes[:8])))
+				m.appendPayloadField(bytes[8:])
+			}
 		} else {
 			m.appendPayloadField(bytes[0:])
 		}
-	case UNSUBACK:
-		m.setMsgId(MId(binary.BigEndian.Uint16(bytes[:2])))
-		/* No Payload */
 	}
 
 	return m
@@ -153,7 +152,7 @@ func decode(bytes []byte) *Message {
 
 //Bytes operates on a Message pointer and returns a slice of bytes
 //representing the Message ready for transmission over the network
-func (m *Message) Bytes() []byte {
+func (m *Message) Bytes(protocolVersion byte) []byte {
 	var b []byte
 	b = append(b, m.header)
 	if m.remlen&0xFF000000 > 0 {
@@ -174,10 +173,16 @@ func (m *Message) Bytes() []byte {
 	for i := range m.vheader {
 		b = append(b, m.vheader[i])
 	}
-	if m.MsgId() != 0 {
-		mid := make([]byte, 2)
-		binary.BigEndian.PutUint16(mid, uint16(m.messageId))
-		b = append(b, mid...)
+	if msgId :=m.MsgId(); msgId!= 0 {
+		if protocolVersion == 0x03{
+			mid := make([]byte, 2)
+			binary.BigEndian.PutUint16(mid, uint16(m.messageId))
+			b = append(b, mid...)
+		}else if protocolVersion == 0x13 {
+			mid := make([]byte, 8)
+			binary.BigEndian.PutUint64(mid, uint64(m.messageId))
+			b = append(b, mid...)
+		}
 	}
 	for i := range m.payload {
 		b = append(b, m.payload[i])

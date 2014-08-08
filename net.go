@@ -59,7 +59,7 @@ func connect(c *MqttClient) (rc ConnRC) {
 		c.errors <- err
 		return
 	}
-	msg := decode(ca)
+	msg := decode(ca, c.options.protocolVersion)
 
 	if msg == nil || msg.msgType() != CONNACK {
 		close(c.begin)
@@ -101,9 +101,9 @@ func incoming(c *MqttClient) {
 				break
 			}
 			DEBUG.Println(NET, "data:", data)
-			msg = decode(append(fixedHeader, data...))
+			msg = decode(append(fixedHeader, data...), c.options.protocolVersion)
 		} else {
-			msg = decode(fixedHeader)
+			msg = decode(fixedHeader, c.options.protocolVersion)
 		}
 		if msg != nil {
 			DEBUG.Println(NET, "incoming received inbound message, type", msg.msgType())
@@ -140,19 +140,24 @@ func outgoing(c *MqttClient) {
 			msgtype := msg.msgType()
 			DEBUG.Println(NET, "obound got msg to write, type:", msgtype)
 			if msg.QoS() != QOS_ZERO && msg.MsgId() == 0 {
-				msg.setMsgId(c.options.mids.getId())
+				if c.options.protocolVersion == 0x03 {
+					msg.setMsgId(c.options.mids.getId())
+				} else if c.options.protocolVersion == 0x13 {
+					msg.setMsgId(c.options.mids.getId64())
+				}
 			}
+
 			if out.r != nil {
 				c.receipts.put(msg.MsgId(), out.r)
 			}
 			msg.setTime()
-			persist_obound(c.persist, msg)
+			persist_obound(c.persist, msg, c.options.protocolVersion)
 
 			if c.options.writeTimeout > 0 {
 				c.conn.SetWriteDeadline(time.Now().Add(c.options.writeTimeout))
 			}
 
-			if _, err := c.conn.Write(msg.Bytes()); err != nil {
+			if _, err := c.conn.Write(msg.Bytes(c.options.protocolVersion)); err != nil {
 				ERROR.Println(NET, "outgoing stopped with error")
 				c.errors <- err
 				return
@@ -174,7 +179,7 @@ func outgoing(c *MqttClient) {
 		case msg := <-c.oboundP:
 			msgtype := msg.msgType()
 			DEBUG.Println(NET, "obound priority msg to write, type", msgtype)
-			_, err := c.conn.Write(msg.Bytes())
+			_, err := c.conn.Write(msg.Bytes(c.options.protocolVersion))
 			if err != nil {
 				ERROR.Println(NET, "outgoing stopped with error")
 				c.errors <- err
@@ -204,7 +209,7 @@ func alllogic(c *MqttClient) {
 		select {
 		case msg := <-c.ibound:
 			DEBUG.Println(NET, "logic got msg on ibound, type", msg.msgType())
-			persist_ibound(c.persist, msg)
+			persist_ibound(c.persist, msg, c.options.protocolVersion)
 			switch msg.msgType() {
 			case PINGRESP:
 				DEBUG.Println(NET, "received pingresp")
@@ -213,7 +218,9 @@ func alllogic(c *MqttClient) {
 				DEBUG.Println(NET, "received suback, id:", msg.MsgId())
 				c.receipts.get(msg.MsgId()) <- Receipt{}
 				c.receipts.end(msg.MsgId())
-				go c.options.mids.freeId(msg.MsgId())
+				if c.options.protocolVersion == 0x03 {
+					go c.options.mids.freeId(msg.MsgId())
+				}
 			case UNSUBACK:
 				DEBUG.Println(NET, "received unsuback, id:", msg.MsgId())
 				c.receipts.get(msg.MsgId()) <- Receipt{}
@@ -226,7 +233,7 @@ func alllogic(c *MqttClient) {
 				case QOS_TWO:
 					c.options.incomingPubChan <- msg
 					DEBUG.Println(NET, "done putting msg on incomingPubChan")
-					pubrecMsg := newPubRecMsg()
+					pubrecMsg := newPubRecMsg(c.options.protocolVersion)
 					pubrecMsg.setMsgId(msg.MsgId())
 					DEBUG.Println(NET, "putting pubrec msg on obound")
 					c.obound <- sendable{pubrecMsg, nil}
@@ -234,7 +241,7 @@ func alllogic(c *MqttClient) {
 				case QOS_ONE:
 					c.options.incomingPubChan <- msg
 					DEBUG.Println(NET, "done putting msg on incomingPubChan")
-					pubackMsg := newPubAckMsg()
+					pubackMsg := newPubAckMsg(c.options.protocolVersion)
 					pubackMsg.setMsgId(msg.MsgId())
 					DEBUG.Println(NET, "putting puback msg on obound")
 					c.obound <- sendable{pubackMsg, nil}
@@ -258,11 +265,13 @@ func alllogic(c *MqttClient) {
 				DEBUG.Println(NET, "received puback, id:", msg.MsgId())
 				c.receipts.get(msg.MsgId()) <- Receipt{}
 				c.receipts.end(msg.MsgId())
-				go c.options.mids.freeId(msg.MsgId())
+				if c.options.protocolVersion == 0x03 {
+					go c.options.mids.freeId(msg.MsgId())
+				}
 			case PUBREC:
 				DEBUG.Println(NET, "received pubrec, id:", msg.MsgId())
 				id := msg.MsgId()
-				pubrelMsg := newPubRelMsg()
+				pubrelMsg := newPubRelMsg(c.options.protocolVersion)
 				pubrelMsg.setMsgId(id)
 				select {
 				case c.obound <- sendable{pubrelMsg, nil}:
@@ -270,7 +279,7 @@ func alllogic(c *MqttClient) {
 				}
 			case PUBREL:
 				DEBUG.Println(NET, "received pubrel, id:", msg.MsgId())
-				pubcompMsg := newPubCompMsg()
+				pubcompMsg := newPubCompMsg(c.options.protocolVersion)
 				pubcompMsg.setMsgId(msg.MsgId())
 				select {
 				case c.obound <- sendable{pubcompMsg, nil}:

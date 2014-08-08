@@ -41,7 +41,7 @@ func (c *MqttClient) resume() []Receipt {
 
 	// take care of inbound qos 2
 	for i := 0; i < len(in); i++ {
-		m := c.persist.Get(in[i])
+		m := c.persist.Get(in[i], c.options.protocolVersion)
 		if m.QoS() == QOS_TWO {
 			DEBUG.Println(STA, "resume inbound qos2")
 			c.ibound <- m
@@ -52,7 +52,7 @@ func (c *MqttClient) resume() []Receipt {
 
 	// take care of inbound qos 1
 	for i := 0; i < len(in); i++ {
-		m := c.persist.Get(in[i])
+		m := c.persist.Get(in[i], c.options.protocolVersion)
 		if m.QoS() == QOS_ONE {
 			DEBUG.Println(STA, "resume inbound qos1")
 			c.ibound <- m
@@ -63,7 +63,7 @@ func (c *MqttClient) resume() []Receipt {
 
 	// take care of outbound qos 2
 	for i := 0; i < len(out); i++ {
-		m := c.persist.Get(out[i])
+		m := c.persist.Get(out[i], c.options.protocolVersion)
 		if m.QoS() == QOS_TWO {
 			DEBUG.Println(STA, "resume outbound qos2")
 			if c.receipts.get(m.MsgId()) == nil { // will be nil if client crashed
@@ -75,7 +75,7 @@ func (c *MqttClient) resume() []Receipt {
 
 	// take care of outbound qos 1
 	for i := 0; i < len(out); i++ {
-		m := c.persist.Get(out[i])
+		m := c.persist.Get(out[i], c.options.protocolVersion)
 		if m.QoS() == QOS_ONE {
 			DEBUG.Println(STA, "resume outbound qos1")
 			if c.receipts.get(m.MsgId()) == nil { // will be nil if client crashed

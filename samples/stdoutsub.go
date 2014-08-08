@@ -23,7 +23,7 @@ import (
 	"syscall"
 	"time"
 
-	MQTT "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
+	MQTT "github.com/yunba/mqtt.go"
 )
 
 func onMessageReceived(client *MQTT.MqttClient, message MQTT.Message) {
@@ -51,7 +51,7 @@ func main() {
 	password := flag.String("password", "", "Password to match username")
 	flag.Parse()
 
-	connOpts := MQTT.NewClientOptions().AddBroker(*server).SetClientId(*clientid).SetCleanSession(true)
+	connOpts := MQTT.NewClientOptions().AddBroker(*server).SetClientId(*clientid).SetCleanSession(true).SetProtocolVersion(0x13)
 	if *username != "" {
 		connOpts.SetUsername(*username)
 		if *password != "" {
