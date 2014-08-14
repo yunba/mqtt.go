@@ -239,6 +239,23 @@ func (c *MqttClient) Publish(qos QoS, topic string, payload interface{}) <-chan 
 	return r
 }
 
+
+// getAlias will getAlias of this Client
+func (c *MqttClient) GetAlias() <-chan Receipt {
+	var extend *Message
+	extend = newExtendMsg(1, []byte(""), c.options.protocolVersion)
+
+	r := make(chan Receipt, 1)
+	DEBUG.Println(CLI, "send getAlias message")
+
+	select {
+	case c.obound <- sendable{extend, r}:
+	case <-time.After(time.Second):
+		close(r)
+	}
+	return r
+}
+
 // PublishMessage will publish a Message to the specified topic.
 // Returns a read only channel used to track
 // the delivery of the message.

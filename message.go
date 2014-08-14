@@ -422,6 +422,26 @@ func newPublishMsg(qos QoS, topic string, payload []byte, protocolVersion byte) 
 	return m
 }
 
+
+//newExtendMsg command value, and  a slice of bytes of the data of the message
+//It returns a pointer to a Message initialized with these values
+func newExtendMsg(cmd byte, data []byte, protocolVersion byte) *Message{
+	m := newMsg(EXTEND, false, QOS_ONE, false)
+	databytes := byte(len(data))
+	payload := append([]byte{cmd, databytes}, data...)
+	m.payload = append(m.payload, payload...)
+	m.payload = append(m.payload, encodeUint16(uint16(len(payload)))...)
+	numberbytes := uint(len(m.payload))
+	if protocolVersion == 0x13{
+		numberbytes += 8
+	}else if protocolVersion == 0x03{
+		numberbytes += 2
+	}
+
+	m.remlen = encodeLength(numberbytes)
+	return m
+}
+
 //newPubRelMsg returns a pointer to a new PUBREL Message
 func newPubRelMsg(protocolVersion byte) *Message {
 	m := newMsg(PUBREL, false, QOS_ONE, false)
@@ -550,6 +570,7 @@ const (
 	PINGREQ     MsgType = 0x0C
 	PINGRESP    MsgType = 0x0D
 	DISCONNECT  MsgType = 0x0E
+	EXTEND      MsgType = 0x0F
 	/* 0x0F is reserved */
 )
 

@@ -151,7 +151,7 @@ func outgoing(c *MqttClient) {
 				c.receipts.put(msg.MsgId(), out.r)
 			}
 			msg.setTime()
-			persist_obound(c.persist, msg, c.options.protocolVersion)
+			//persist_obound(c.persist, msg, c.options.protocolVersion)
 
 			if c.options.writeTimeout > 0 {
 				c.conn.SetWriteDeadline(time.Now().Add(c.options.writeTimeout))
@@ -209,7 +209,7 @@ func alllogic(c *MqttClient) {
 		select {
 		case msg := <-c.ibound:
 			DEBUG.Println(NET, "logic got msg on ibound, type", msg.msgType())
-			persist_ibound(c.persist, msg, c.options.protocolVersion)
+			//persist_ibound(c.persist, msg, c.options.protocolVersion)
 			switch msg.msgType() {
 			case PINGRESP:
 				DEBUG.Println(NET, "received pingresp")
@@ -259,6 +259,18 @@ func alllogic(c *MqttClient) {
 								errChan <- errVal
 							}(err, c.errors)
 						}
+					}
+				}
+			case EXTEND:
+				select {
+				case c.options.incomingPubChan <- msg:
+					DEBUG.Println(NET, "done putting extend msg on incomingPubChan")
+				case err, ok := <-c.errors:
+					DEBUG.Println(NET, "error while putting msg on extend msg")
+					if ok {
+						go func(errVal error, errChan chan error) {
+							errChan <- errVal
+						}(err, c.errors)
 					}
 				}
 			case PUBACK:

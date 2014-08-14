@@ -154,6 +154,15 @@ func decode(bytes []byte, protocolVersion byte) *Message {
 		} else {
 			m.appendPayloadField(bytes[0:])
 		}
+
+	case EXTEND:
+		if protocolVersion == 0x03 {
+			m.setMsgId(MId(binary.BigEndian.Uint16(bytes[:2])))
+			m.appendPayloadField(bytes[2:])
+		}else if protocolVersion == 0x13 {
+			m.setMsgId(MId(binary.BigEndian.Uint64(bytes[:8])))
+			m.appendPayloadField(bytes[8:])
+		}
 	}
 
 	return m
