@@ -15,15 +15,14 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
+	"log"
 
-	MQTT "github.com/yunba/mqtt.go"
+	MQTT "mqtt"
 )
 
 func onMessageReceived(client *MQTT.MqttClient, message MQTT.Message) {
@@ -40,37 +39,67 @@ func main() {
 		os.Exit(0)
 	}()
 
-	hostname, _ := os.Hostname()
+	appkey := "13215315"
+	deviceId := ""
+	topic := "underground"
+	qos := MQTT.QOS_ONE
 
-	server := flag.String("server", "tcp://127.0.0.1:1883", "The full url of the MQTT server to connect to ex: tcp://127.0.0.1:1883")
-	topic := flag.String("topic", "#", "Topic to subscribe to")
-	qos := flag.Int("qos", 0, "The QoS to subscribe to messages at")
-	//retained := flag.Bool("retained", false, "Are the messages sent with the retained flag")
-	clientid := flag.String("clientid", hostname+strconv.Itoa(time.Now().Second()), "A clientid for the connection")
-	username := flag.String("username", "", "A username to authenticate to the MQTT server")
-	password := flag.String("password", "", "Password to match username")
-	flag.Parse()
-
-	connOpts := MQTT.NewClientOptions().AddBroker(*server).SetClientId(*clientid).SetCleanSession(true).SetProtocolVersion(0x13)
-	if *username != "" {
-		connOpts.SetUsername(*username)
-		if *password != "" {
-			connOpts.SetPassword(*password)
-		}
+	yunbaClient := &MQTT.YunbaClient{appkey, deviceId}
+	regInfo, err := yunbaClient.Reg()
+	if err != nil {
+		log.Fatal(err)
+		return
 	}
 
+	if regInfo.ErrCode != 0 {
+		log.Fatal("has error:", regInfo.ErrCode)
+		return
+	}
+
+	fmt.Printf("resp:\t\t%+v\n", regInfo)
+	fmt.Println("ClientId", regInfo.Client)
+	fmt.Println("UserName", regInfo.UserName)
+	fmt.Println("Password", regInfo.Password)
+	fmt.Println("DeviceId", regInfo.DeviceId)
+	fmt.Println("")
+
+	urlInfo, err := yunbaClient.GetHost()
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	if regInfo.ErrCode != 0 {
+		log.Fatal("has error:", urlInfo.ErrCode)
+		return
+	}
+
+
+	fmt.Printf("URL:\t\t%+v\n", urlInfo)
+	fmt.Println("url", urlInfo.Client)
+	fmt.Println("")
+
+
+
+	connOpts := MQTT.NewClientOptions()
+	connOpts.AddBroker(urlInfo.Client)
+	connOpts.SetClientId(regInfo.Client)
+	connOpts.SetCleanSession(true)
+	connOpts.SetProtocolVersion(0x13)
+
+	connOpts.SetUsername(regInfo.UserName)
+	connOpts.SetPassword(regInfo.Password)
+
 	client := MQTT.NewClient(connOpts)
-	_, err := client.Start()
+	_, err = client.Start()
 	if err != nil {
 		panic(err)
 	} else {
-		fmt.Printf("Connected to %s\n", *server)
+		fmt.Printf("Connected to %s\n", urlInfo.Client)
 	}
 
-	filter, e := MQTT.NewTopicFilter(*topic, byte(*qos))
+	filter, e := MQTT.NewTopicFilter(topic, byte(qos))
 	if e != nil {
-		fmt.Println(e)
-		os.Exit(1)
+		log.Fatal(e)
 	}
 	client.StartSubscription(onMessageReceived, filter)
 

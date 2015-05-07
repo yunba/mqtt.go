@@ -15,7 +15,7 @@ const (
 // 服务器返回信息
 type YunbaInfo struct {
     ErrCode int `json:"e,omitempty"`
-    Client string `json:"c,omitempty"`
+    Client string `json:"c,omitempty"`  // ClientId or Url, see samples/stdinpub.go
     UserName string `json:"u,omitempty"`
     Password string `json:"p,omitempty"`
     DeviceId string `json:"d,omitempty"`
@@ -45,6 +45,7 @@ func (this *YunbaClient)httpPostJson(url, jsonStr string) (string, error){
     return string(body), nil
 }
 
+// 注册, 获得注册信息
 func (this *YunbaClient)Reg() (*YunbaInfo, error){
     jsonStr := fmt.Sprintf(`{"a":"%s","p":4, "d":"%s"}`, this.Appkey, this.DeviceId)
 
@@ -63,6 +64,7 @@ func (this *YunbaClient)Reg() (*YunbaInfo, error){
     return regInfo, nil
 }
 
+// 获得host信息
 func (this *YunbaClient)GetHost() (*YunbaInfo, error){
     jsonStr := fmt.Sprintf(`{"a":%s,"n":1,"v":"v1.0.0","o":1}`, this.Appkey)
 
