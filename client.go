@@ -239,6 +239,14 @@ func (c *MqttClient) Publish(qos QoS, topic string, payload interface{}) <-chan 
 	return r
 }
 
+// YunBa API set_alias
+// set user alias
+// MUST SET ClientOptions.SetDefaultPublishHandler() to use it.
+// the DefaultPublishHandler will handling user message
+func (c *MqttClient) SetAlias(alias string)  <-chan Receipt {
+    topicName :=",yali"
+    return c.Publish(QOS_ONE, topicName, alias)
+}
 
 // getAlias will getAlias of this Client
 func (c *MqttClient) GetAlias() <-chan Receipt {
@@ -277,6 +285,7 @@ func (c *MqttClient) PublishMessage(topic string, message *Message) <-chan Recei
 		return nil
 	}
 }
+
 
 // Start a new subscription. Provide a MessageHandler to be executed when
 // a message is published on one of the topics provided.
