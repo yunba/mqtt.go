@@ -248,6 +248,11 @@ func (m *Message) appendPayloadField(field interface{}) {
 
 //Topic returns the topic of the Message as encoded in the variable header
 func (m *Message) Topic() string {
+
+	if len(m.vheader) < 2 {
+		return ""
+	}
+
 	// skip 2 topic length bytes
 	if m.QoS() == QOS_ZERO {
 		return string(m.vheader[2:])
