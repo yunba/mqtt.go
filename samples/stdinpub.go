@@ -22,6 +22,9 @@ import (
 	"strings"
 	"log"
 	MQTT "mqtt"
+	"flag"
+	"time"
+	"strconv"
 )
 
 
@@ -32,22 +35,27 @@ var f MQTT.MessageHandler = func(client *MQTT.MqttClient, msg MQTT.Message) {
 
 func main() {
 	stdin := bufio.NewReader(os.Stdin)
+	hostname, _ := os.Hostname()
 
-	appkey := "13213131"
-	deviceId := ""
-	topic := "underground"
-	qos := MQTT.QOS_ONE
+	appkey := flag.String("appkey", "", "YunBa appkey")
+	topic := flag.String("topic", hostname, "Topic to publish the messages on")
+	qos := flag.Int("qos", 0, "The QoS to send the messages at")
+	//retained := flag.Bool("retained", false, "Are the messages sent with the retained flag")
+	deviceId := flag.String("clientid", hostname+strconv.Itoa(time.Now().Second()), "A clientid for the connection")
+	flag.Parse()
 
-	yunbaClient := &MQTT.YunbaClient{appkey, deviceId}
+    if *appkey == "" {
+        log.Fatal("please set your Yunba Portal's appkey")
+    }
+
+	yunbaClient := &MQTT.YunbaClient{*appkey, *deviceId}
 	regInfo, err := yunbaClient.Reg()
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	if regInfo.ErrCode != 0 {
 		log.Fatal("has error:", regInfo.ErrCode)
-		return
 	}
 
 	fmt.Printf("resp:\t\t%+v\n", regInfo)
@@ -60,11 +68,9 @@ func main() {
 	urlInfo, err := yunbaClient.GetHost()
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 	if regInfo.ErrCode != 0 {
-		log.Fatal("has error:", urlInfo.ErrCode)
-		return
+		log.Fatal("reg has error:", urlInfo.ErrCode)
 	}
 
 
@@ -89,7 +95,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	} else {
-		fmt.Printf("Connected to %s\n", urlInfo.Client)
+		log.Printf("Connected to %s\n", urlInfo.Client)
 	}
 
 	for {
@@ -97,7 +103,7 @@ func main() {
 		if err == io.EOF {
 			os.Exit(0)
 		}
-		r := client.Publish(qos, topic, []byte(strings.TrimSpace(message)))
+		r := client.Publish(MQTT.QoS(*qos), *topic, []byte(strings.TrimSpace(message)))
 		<-r // received puback will send message to chan r,   net.go: case PUBACK
 		fmt.Println("Message Sent")
 	}

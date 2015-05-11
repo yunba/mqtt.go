@@ -23,6 +23,8 @@ import (
 	"log"
 
 	MQTT "mqtt"
+	"flag"
+	"strconv"
 )
 
 func onMessageReceived(client *MQTT.MqttClient, message MQTT.Message) {
@@ -39,21 +41,27 @@ func main() {
 		os.Exit(0)
 	}()
 
-	appkey := "13215315"
-	deviceId := ""
-	topic := "underground"
-	qos := MQTT.QOS_ONE
+	hostname, _ := os.Hostname()
 
-	yunbaClient := &MQTT.YunbaClient{appkey, deviceId}
+	appkey := flag.String("appkey", "", "YunBa appkey")
+	topic := flag.String("topic", hostname, "Topic to publish the messages on")
+	qos := flag.Int("qos", 0, "The QoS to send the messages at")
+	//retained := flag.Bool("retained", false, "Are the messages sent with the retained flag")
+	deviceId := flag.String("clientid", hostname+strconv.Itoa(time.Now().Second()), "A clientid for the connection")
+	flag.Parse()
+
+	if *appkey == "" {
+		log.Fatal("please set your Yunba Portal's appkey")
+	}
+
+	yunbaClient := &MQTT.YunbaClient{*appkey, *deviceId}
 	regInfo, err := yunbaClient.Reg()
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	if regInfo.ErrCode != 0 {
-		log.Fatal("has error:", regInfo.ErrCode)
-		return
+		log.Fatal("reg has error:", regInfo.ErrCode)
 	}
 
 	fmt.Printf("resp:\t\t%+v\n", regInfo)
@@ -66,11 +74,9 @@ func main() {
 	urlInfo, err := yunbaClient.GetHost()
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 	if regInfo.ErrCode != 0 {
-		log.Fatal("has error:", urlInfo.ErrCode)
-		return
+		log.Fatal("reg has error:", urlInfo.ErrCode)
 	}
 
 
@@ -89,21 +95,26 @@ func main() {
 	connOpts.SetUsername(regInfo.UserName)
 	connOpts.SetPassword(regInfo.Password)
 
+
 	client := MQTT.NewClient(connOpts)
 	_, err = client.Start()
 	if err != nil {
 		panic(err)
 	} else {
-		fmt.Printf("Connected to %s\n", urlInfo.Client)
-	}
+        log.Printf("Connected to %s\n", urlInfo.Client)
+    }
 
-	filter, e := MQTT.NewTopicFilter(topic, byte(qos))
+    <- client.SetAlias(hostname)
+
+    filter, e := MQTT.NewTopicFilter(*topic, byte(*qos))
 	if e != nil {
 		log.Fatal(e)
 	}
-	client.StartSubscription(onMessageReceived, filter)
 
-	for {
+    client.StartSubscription(onMessageReceived, filter)
+    client.Presence(onMessageReceived, *topic)
+
+    for {
 		time.Sleep(1 * time.Second)
 	}
 }
