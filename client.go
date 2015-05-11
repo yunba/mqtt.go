@@ -239,6 +239,29 @@ func (c *MqttClient) Publish(qos QoS, topic string, payload interface{}) <-chan 
 	return r
 }
 
+// YunBa API presence
+// see http://yunba.io/docs2/c/api/#MQTTClient_presence
+func (c *MqttClient) Presence(callback MessageHandler, topic string) (<-chan Receipt, error) {
+    filter, err := NewTopicFilter(topic + "/p", byte(QOS_ONE))
+    if err != nil {
+        return nil, err
+    }
+    return c.StartSubscription(callback, filter)
+}
+
+// YunBa API presence
+// see http://yunba.io/docs2/c/api/#MQTTClient_unpresence
+func (c *MqttClient) UnPresence(topic string) (<-chan Receipt, error) {
+    topic += "/p"
+    return c.EndSubscription(topic + "/p")
+}
+
+// YunBa API set_alias
+// see http://yunba.io/docs2/c/api/#MQTTClient_set_alias
+func (c *MqttClient) SetAlias(alias string)  <-chan Receipt {
+    topicName :=",yali"
+    return c.Publish(QOS_ONE, topicName, alias)
+}
 
 // getAlias will getAlias of this Client
 func (c *MqttClient) GetAlias() <-chan Receipt {
@@ -277,6 +300,7 @@ func (c *MqttClient) PublishMessage(topic string, message *Message) <-chan Recei
 		return nil
 	}
 }
+
 
 // Start a new subscription. Provide a MessageHandler to be executed when
 // a message is published on one of the topics provided.

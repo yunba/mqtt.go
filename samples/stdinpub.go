@@ -16,16 +16,17 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
+	"log"
+	MQTT "mqtt"
+	"flag"
 	"time"
+	"strconv"
 )
 
-import MQTT "github.com/yunba/mqtt.go"
 
 var f MQTT.MessageHandler = func(client *MQTT.MqttClient, msg MQTT.Message) {
 	fmt.Printf("TOPIC: %s\n", msg.Topic())
@@ -36,30 +37,65 @@ func main() {
 	stdin := bufio.NewReader(os.Stdin)
 	hostname, _ := os.Hostname()
 
-	server := flag.String("server", "tcp://127.0.0.1:1883", "The full URL of the MQTT server to connect to")
+	appkey := flag.String("appkey", "", "YunBa appkey")
 	topic := flag.String("topic", hostname, "Topic to publish the messages on")
 	qos := flag.Int("qos", 0, "The QoS to send the messages at")
 	//retained := flag.Bool("retained", false, "Are the messages sent with the retained flag")
-	clientid := flag.String("clientid", hostname+strconv.Itoa(time.Now().Second()), "A clientid for the connection")
-	username := flag.String("username", "", "A username to authenticate to the MQTT server")
-	password := flag.String("password", "", "Password to match username")
+	deviceId := flag.String("clientid", hostname+strconv.Itoa(time.Now().Second()), "A clientid for the connection")
 	flag.Parse()
 
-	connOpts := MQTT.NewClientOptions().AddBroker(*server).SetClientId(*clientid).SetCleanSession(true).SetProtocolVersion(0x13)
-	connOpts.SetDefaultPublishHandler(f)
-	if *username != "" {
-		connOpts.SetUsername(*username)
-		if *password != "" {
-			connOpts.SetPassword(*password)
-		}
+    if *appkey == "" {
+        log.Fatal("please set your Yunba Portal's appkey")
+    }
+
+	yunbaClient := &MQTT.YunbaClient{*appkey, *deviceId}
+	regInfo, err := yunbaClient.Reg()
+	if err != nil {
+		log.Fatal(err)
 	}
 
+	if regInfo.ErrCode != 0 {
+		log.Fatal("has error:", regInfo.ErrCode)
+	}
+
+	fmt.Printf("resp:\t\t%+v\n", regInfo)
+	fmt.Println("ClientId", regInfo.Client)
+	fmt.Println("UserName", regInfo.UserName)
+	fmt.Println("Password", regInfo.Password)
+	fmt.Println("DeviceId", regInfo.DeviceId)
+	fmt.Println("")
+
+	urlInfo, err := yunbaClient.GetHost()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if regInfo.ErrCode != 0 {
+		log.Fatal("reg has error:", urlInfo.ErrCode)
+	}
+
+
+	fmt.Printf("URL:\t\t%+v\n", urlInfo)
+	fmt.Println("url", urlInfo.Client)
+	fmt.Println("")
+
+
+	connOpts := MQTT.NewClientOptions()
+	connOpts.AddBroker(urlInfo.Client)
+	connOpts.SetClientId(regInfo.Client)
+	connOpts.SetCleanSession(true)
+	connOpts.SetProtocolVersion(0x13)
+
+	connOpts.SetUsername(regInfo.UserName)
+	connOpts.SetPassword(regInfo.Password)
+
+	connOpts.SetDefaultPublishHandler(f)
+
 	client := MQTT.NewClient(connOpts)
-	_, err := client.Start()
+	_, err = client.Start()
 	if err != nil {
 		panic(err)
 	} else {
-		fmt.Printf("Connected to %s\n", *server)
+		log.Printf("Connected to %s\n", urlInfo.Client)
 	}
 
 	for {
