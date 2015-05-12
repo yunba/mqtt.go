@@ -266,10 +266,26 @@ func (c *MqttClient) SetAlias(alias string)  <-chan Receipt {
 // getAlias will getAlias of this Client
 func (c *MqttClient) GetAlias() <-chan Receipt {
 	var extend *Message
-	extend = newExtendMsg(1, []byte(""), c.options.protocolVersion)
+	extend = newExtendMsg(GETALIAS, []byte(""), c.options.protocolVersion)
 
 	r := make(chan Receipt, 1)
 	DEBUG.Println(CLI, "send getAlias message")
+
+	select {
+	case c.obound <- sendable{extend, r}:
+	case <-time.After(time.Second):
+		close(r)
+	}
+	return r
+}
+
+// getAliasList of this Client
+func (c *MqttClient) GetAliasList(topic string) <-chan Receipt {
+	var extend *Message
+	extend = newExtendMsg(GETALIASLIST, []byte(topic), c.options.protocolVersion)
+
+	r := make(chan Receipt, 1)
+	DEBUG.Println(CLI, "send getAliasList message")
 
 	select {
 	case c.obound <- sendable{extend, r}:

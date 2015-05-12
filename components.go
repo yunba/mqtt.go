@@ -28,3 +28,9 @@ const (
 	STA component = "[state]   "
 	ERR component = "[error]   "
 )
+
+const (
+    GETALIAS = 1
+	GETTOPIC = 3
+	GETALIASLIST = 5
+)

@@ -432,10 +432,14 @@ func newPublishMsg(qos QoS, topic string, payload []byte, protocolVersion byte) 
 //It returns a pointer to a Message initialized with these values
 func newExtendMsg(cmd byte, data []byte, protocolVersion byte) *Message{
 	m := newMsg(EXTEND, false, QOS_ONE, false)
-	databytes := byte(len(data))
-	payload := append([]byte{cmd, databytes}, data...)
-	m.payload = append(m.payload, payload...)
-	m.payload = append(m.payload, encodeUint16(uint16(len(payload)))...)
+	databytes := encodeUint16(uint16(len(data)))
+	var payload []byte
+	payload = append(payload, cmd)
+	payload = append(payload, databytes...)
+	payload = append(payload, data...)
+
+	m.appendPayloadField(payload)
+
 	numberbytes := uint(len(m.payload))
 	if protocolVersion == 0x13{
 		numberbytes += 8
