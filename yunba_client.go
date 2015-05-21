@@ -47,7 +47,7 @@ func (this *YunbaClient)httpPostJson(url, jsonStr string) (string, error){
 
 // 注册, 获得注册信息
 func (this *YunbaClient)Reg() (*YunbaInfo, error){
-    jsonStr := fmt.Sprintf(`{"a":"%s","p":4, "d":"%s"}`, this.Appkey, this.DeviceId)
+    jsonStr := fmt.Sprintf(`{"a":"%s","p":2, "d":"%s"}`, this.Appkey, this.DeviceId)
 
 
     resp, err := this.httpPostJson(yunba_REG_URL, jsonStr)
