@@ -41,7 +41,7 @@ func main() {
 	topic := flag.String("topic", hostname, "Topic to publish the messages on")
 	qos := flag.Int("qos", 0, "The QoS to send the messages at")
 	//retained := flag.Bool("retained", false, "Are the messages sent with the retained flag")
-	deviceId := flag.String("clientid", hostname+strconv.Itoa(time.Now().Second()), "A clientid for the connection")
+	deviceId := flag.String("deviceId", hostname+strconv.Itoa(time.Now().Second()), "A deviceId for the connection")
 	flag.Parse()
 
     if *appkey == "" {
