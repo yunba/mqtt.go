@@ -263,6 +263,14 @@ func (c *MqttClient) SetAlias(alias string)  <-chan Receipt {
     return c.Publish(QOS_ONE, topicName, alias)
 }
 
+// YunBa API publish_to_alias
+// see  http://yunba.io/docs2/c/api/#MQTTClient_publish_to_alias
+func (c *MqttClient) PublishToAlias(alias string, payload interface{})  <-chan Receipt {
+    topicName :=",yta/" + alias
+    return c.Publish(QOS_ONE, topicName, payload)
+}
+
+
 // getAlias will getAlias of this Client
 func (c *MqttClient) GetAlias() <-chan Receipt {
 	var extend *Message

@@ -2,12 +2,13 @@
 $ go test
 
 # publish
-$ go run stdinpub.go -server tcp://localhost:1883 -topic test  -clientid xxx -username xxx -password xxx -qos 1
+$ go run stdinpub.go -appkey xxx -topic yyy -qos 1
 
 # subscribe
-$ go run stdoutsub.go -server tcp://localhost:1883 -topic test -clientid xxx -username xxx -password xxx -qos 1
+$ go run stdoutsub.go -appkey xxx -topic yyy -qos 1
 
-
+# set alias and publish to alias
+$ go run alias.go -appkey xxx -alias zzz
 
 
 mqtt.go
