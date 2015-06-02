@@ -95,6 +95,8 @@ func main() {
 	<- s
 	k := client.PublishToAlias(*alias, "publish to alias")
 	<- k
+	r := client.GetState(*alias)
+	<- r
 
 	for {
 		time.Sleep(1 * time.Second)

@@ -33,4 +33,5 @@ const (
     GETALIAS = 1
 	GETTOPIC = 3
 	GETALIASLIST = 5
+	GETSTATE = 9
 )
