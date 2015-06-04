@@ -264,7 +264,11 @@ func (m *Message) Topic() string {
 
 //Payload returns a slice of bytes containing the payload of the Message
 func (m *Message) Payload() []byte {
-	return m.payload
+    if(m.msgType() == EXTEND){
+        return m.payload[3:]
+    }else{
+        return m.payload
+    }
 }
 
 //timeout returns a uint16 indicating the timeout value of the Message
