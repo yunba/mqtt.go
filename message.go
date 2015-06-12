@@ -265,7 +265,7 @@ func (m *Message) Topic() string {
 //Payload returns a slice of bytes containing the payload of the Message
 func (m *Message) Payload() []byte {
     if(m.msgType() == EXTEND){
-        return m.payload[3:]
+        return m.payload[4:]
     }else{
         return m.payload
     }
