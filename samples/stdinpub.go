@@ -27,7 +27,6 @@ import (
 	"strconv"
 )
 
-
 var f MQTT.MessageHandler = func(client *MQTT.MqttClient, msg MQTT.Message) {
 	fmt.Printf("TOPIC: %s\n", msg.Topic())
 	fmt.Printf("MSG: %s\n", msg.Payload())
@@ -41,12 +40,12 @@ func main() {
 	topic := flag.String("topic", hostname, "Topic to publish the messages on")
 	qos := flag.Int("qos", 0, "The QoS to send the messages at")
 	//retained := flag.Bool("retained", false, "Are the messages sent with the retained flag")
-	deviceId := flag.String("deviceId", hostname+strconv.Itoa(time.Now().Second()), "A deviceId for the connection")
+	deviceId := flag.String("deviceId", hostname + strconv.Itoa(time.Now().Second()), "A deviceId for the connection")
 	flag.Parse()
 
-    if *appkey == "" {
-        log.Fatal("please set your Yunba Portal's appkey")
-    }
+	if *appkey == "" {
+		log.Fatal("please set your Yunba Portal's appkey")
+	}
 
 	yunbaClient := &MQTT.YunbaClient{*appkey, *deviceId}
 	regInfo, err := yunbaClient.Reg()
@@ -73,14 +72,14 @@ func main() {
 		log.Fatal("reg has error:", urlInfo.ErrCode)
 	}
 
-
 	fmt.Printf("URL:\t\t%+v\n", urlInfo)
 	fmt.Println("url", urlInfo.Client)
 	fmt.Println("")
 
+	broker := urlInfo.Client
 
 	connOpts := MQTT.NewClientOptions()
-	connOpts.AddBroker(urlInfo.Client)
+	connOpts.AddBroker(broker)
 	connOpts.SetClientId(regInfo.Client)
 	connOpts.SetCleanSession(true)
 	connOpts.SetProtocolVersion(0x13)
@@ -95,7 +94,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	} else {
-		log.Printf("Connected to %s\n", urlInfo.Client)
+		log.Printf("Connected to %s\n", broker)
 	}
 
 	for {
