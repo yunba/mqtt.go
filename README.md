@@ -2,7 +2,7 @@
 
 Yunba Go SDK.
 
-## Installation
+## Install
 
 This client is designed to work with the standard Go tools, so installation is as easy as:
 
