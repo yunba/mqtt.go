@@ -10,12 +10,19 @@ This client is designed to work with the standard Go tools, so installation is a
 go get github.com/yunba/mqtt.go
 ```
 
+If error happened like:
+
+```
+package golang.org/x/net/websocket: unrecognized import path "golang.org/x/net/websocket" (https fetch: Get https://golang.org/x/net/websocket?go-get=1: dial tcp 216.239.37.1:443: i/o timeout)
+```
+
+You need a VPN because some URLs of Go package are blocked.
+
 ## Test
 
 ```
 go test
 ```
-
 
 ## Usage
 
