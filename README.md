@@ -10,7 +10,7 @@ This client is designed to work with the standard Go tools, so installation is a
 go get github.com/yunba/mqtt.go
 ```
 
-If error happened like:
+If error happened like this:
 
 ```
 package golang.org/x/net/websocket: unrecognized import path "golang.org/x/net/websocket" (https fetch: Get https://golang.org/x/net/websocket?go-get=1: dial tcp 216.239.37.1:443: i/o timeout)
