@@ -76,10 +76,8 @@ func main() {
 	fmt.Println("url", urlInfo.Client)
 	fmt.Println("")
 
-	broker := urlInfo.Client
-
 	connOpts := MQTT.NewClientOptions()
-	connOpts.AddBroker(broker)
+	connOpts.AddBroker(urlInfo.Client)
 	connOpts.SetClientId(regInfo.Client)
 	connOpts.SetCleanSession(true)
 	connOpts.SetProtocolVersion(0x13)
@@ -94,7 +92,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	} else {
-		log.Printf("Connected to %s\n", broker)
+		log.Printf("Connected to %s\n", urlInfo.Client)
 	}
 
 	for {

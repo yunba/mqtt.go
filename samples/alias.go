@@ -34,7 +34,7 @@ func main() {
 
 	appkey := flag.String("appkey", "", "YunBa appkey")
 	alias := flag.String("alias", hostname, "Alias for client")
-	deviceId := flag.String("deviceId", hostname+strconv.Itoa(time.Now().Second()), "A deviceId for the connection")
+	deviceId := flag.String("deviceId", hostname + strconv.Itoa(time.Now().Second()), "A deviceId for the connection")
 	flag.Parse()
 
 	if *appkey == "" {
@@ -66,11 +66,9 @@ func main() {
 		log.Fatal("reg has error:", urlInfo.ErrCode)
 	}
 
-
 	fmt.Printf("URL:\t\t%+v\n", urlInfo)
 	fmt.Println("url", urlInfo.Client)
 	fmt.Println("")
-
 
 	connOpts := MQTT.NewClientOptions()
 	connOpts.AddBroker(urlInfo.Client)
@@ -92,11 +90,11 @@ func main() {
 	}
 
 	s := client.SetAlias(*alias)
-	<- s
+	<-s
 	k := client.PublishToAlias(*alias, "publish to alias")
-	<- k
+	<-k
 	r := client.GetState(*alias)
-	<- r
+	<-r
 
 	for {
 		time.Sleep(1 * time.Second)
